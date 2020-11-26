@@ -16,6 +16,7 @@
 
 #include "mbed.h"
 #include "I2CHelper.hpp"
+#include <cstdint>
 
 #ifndef MPU6050_H
 #define MPU6050_H
@@ -24,7 +25,8 @@
     Registers
     See register map linked above
  */
-#define MCU6050_ADDRESS     0x68 //!< Default 8 bit address
+#define MPU6050_ADDRESS_7BIT     0x68 //!< 7-bit address
+#define MPU6050_ADDRESS_8BIT     0xD0 //!< 8-bit address
 /*!<
     Self Tests for accel/gyro
  */
@@ -162,7 +164,30 @@ AFS_SEL     Full Scale Range
 #define SIGNAL_PATH_RESET   0x68
 #define MOT_DETECT_CTRL     0x69
 #define USER_CTRL           0x6A
-#define PWR_MGMT_1          0x6B    //!< Reset Value: 0x40
+/*!
+    Power Management 1
+    - Reset value 0x40
+
+    Bit7    DEVICE_RESET - Resets all registers default
+    Bit6    SLEEP - Sleep mode enable/disable
+    Bit5    CYCLE - Cycle Mode enable/disable
+    Bit4    -
+    Bit3    TEMP_DIS - Temperature sensor enable/disable
+    Bit2    CLKSEL[2:0]
+    Bit1    CLKSEL[2:0]
+    Bit0    CLKSEL[2:0]
+
+CLKSEL          Clock Source
+    0       Internal 8MHz oscillator
+    1       PLL with X axis gyroscope reference
+    2       PLL with Y axis gyroscope reference
+    3       PLL with Z axis gyroscope reference
+    4       PLL with external 32.768kHz reference
+    5       PLL with external 19.2MHz reference
+    6       Reserved
+    7       Stops the clock and keeps the timing generator in reset
+ */
+#define PWR_MGMT_1          0x6B
 #define PWR_MGMT_2          0x6C
 #define FIFO_COUNTH         0x72
 #define FIFO_COUNTL         0x73
@@ -173,6 +198,9 @@ AFS_SEL     Full Scale Range
     Constants
  */
 #define RESET_REGISTER      0x00 //!< Reset for all except 0x6B and 0x75 registers
+
+#define ENABLE      1
+#define DISABLE     0
 
 
 /*!
@@ -188,10 +216,28 @@ private:
 public:
     /*!
         Constructor
-    
         \param i2c Pointer to an I2C object
-     */
+    */
     MPU6050 (I2C* i2c);
+
+    /*!
+        Enable Sleep mode
+        \param state ENABLE / DISABLE
+    */
+    void enableSleep(uint8_t state);
+    /*!
+        Sets clock reference
+        \param freq Frequency for I2C clock
+    */
+    void setI2CFreq(uint8_t freq);
+    /*!
+        Check axis value
+        \param x Pointer to variable to store x accelerometer data
+        \param y Pointer to variable to store y accelerometer data
+        \param z Pointer to variable to store z accelerometer data
+    */
+    void getAcceleration(int16_t* x, int16_t* y, int16_t* z);
+
 
 };
 

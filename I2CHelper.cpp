@@ -7,8 +7,9 @@
 
 #include "I2CHelper.hpp"
 
-#ifndef I2C_HELPER_H
-#define I2C_HELPER_H
 
+I2CHelper::I2CHelper(I2C* i2c) :
+    i2c(i2c) {
 
-#endif
+}
+

@@ -20,15 +20,12 @@
 #include "mbed.h"
 #include "A4988.hpp"
 #include "BalanceBot.hpp"
+#include "MPU6050.hpp"
+//#include "I2CHelper.hpp"
 
 /*!
  *  Hardware Initialization
  */
-Thread ledThread; //!< Thread for handling onboard LED routine
-Thread buttonThread; //!< Thread for monitoring push buttons
-
-Serial pc(USBTX, USBRX);
-
 DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 DigitalOut led3(LED3);
@@ -50,6 +47,10 @@ DigitalOut r_dir(p18);
 DigitalOut r_ms1(p11);
 DigitalOut r_ms2(p12);
 DigitalOut r_ms3(p13);
+
+
+Thread ledThread; //!< Handling onboard LED routine
+Thread buttonThread; //!< Mnitoring push buttons
 
 /*!
  *  Defines
@@ -93,17 +94,20 @@ int main()
     I2C i2c(p28, p27); //!< SDA, SCL
     //I2C i2c(I2C_SDA1, I2C_SCL1);
     i2c.frequency(400000); //<! Maxspeed for MPU6050
-
+    MPU6050 testMPU(&i2c);
     //!< Main thread
+
     while (GO_TIME) {
-
-
-
+        int16_t xAcceleration = 0;
+        int16_t yAcceleration = 0;
+        int16_t zAcceleration = 0;
+        
+        testMPU.getAcceleration(&xAcceleration, &yAcceleration, &zAcceleration);
 
         checkPBs(&bot);
-        bot.step();
+        //bot.step();
         
-        //ThisThread::sleep_for(100);
+        ThisThread::sleep_for(1000);
     }
     return EXIT_SUCCESS;
 

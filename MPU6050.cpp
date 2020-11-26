@@ -8,12 +8,50 @@
 
 #include "MPU6050.hpp"
 
-// Implementation of controlStep()
+/*!
+    Constructor
+    \param i2c Pointer to an I2C object
+*/
 MPU6050::MPU6050 (I2C* i2c) 
     : i2c(i2c) {
-    
-    //Disable sleep mode
+    //!< Make sure MPU is awake
+    this->enableSleep(ENABLE);
+    //Change clock source to a gyro axis
     //Set I2C frequency in I2C_MST_CTRL
     //Set GYRO_CONFIG register page 14
     //Set ACCEL_CONFIG register page 14
+    //Run self tests on all 6 DOF
 };
+    /*!
+        Enable Sleep mode
+        \param state ENABLE / DISABLE
+    */
+void MPU6050::enableSleep(uint8_t state){ 
+    char data[2];
+    data[0] = PWR_MGMT_1; //!< PWR_MGMT_1
+    //!< Get current device state then mask off sleep bit
+    i2c->write(MPU6050_ADDRESS_8BIT, data, 1, true);
+    i2c->read(MPU6050_ADDRESS_8BIT, &data[1], 1);
+    data[1] = data[1] & 0xBF; //!< Ensure sleep mode bit is zero
+    i2c->write(MPU6050_ADDRESS_8BIT, data, 2);
+}
+
+/*!
+    Check axis value
+    \param axis Gyro / Accel axis to check
+*/
+void MPU6050::getAcceleration(int16_t* x, int16_t* y, int16_t* z) {
+    char wData[1];
+    char rData[6];
+    wData[0] = ACCEL_XOUT_H; //!< First register for accelerometer data
+
+    i2c->write(MPU6050_ADDRESS_8BIT, wData, 1, true);
+    i2c->read(MPU6050_ADDRESS_8BIT, rData, 6);
+    *x = (int16_t(rData[0]) << 8) | rData[1];
+    *y = (int16_t(rData[2]) << 8) | rData[3];
+    *z = (int16_t(rData[4]) << 8) | rData[5];
+    printf("x Acceleration: %i\n\r", *x);
+    printf("y Acceleration: %i\n\r", *y);
+    printf("z Acceleration: %i\n\r", *z);
+}
+

@@ -16,7 +16,7 @@
 
 #include "mbed.h"
 #include "A4988.hpp"
-// #include "MPU6050.hpp"
+#include "MPU6050.hpp"
 // #include "PID_Controller.hpp"
 
  #ifndef BALANCE_BOT_H 
@@ -39,7 +39,7 @@ class BalanceBot {
 private: 
     A4988* leftWheel;
     A4988* rightWheel;
-
+    
 public:
     BalanceBot (A4988 *lw, A4988* rw);
 
