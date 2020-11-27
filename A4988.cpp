@@ -40,77 +40,65 @@
     void A4988::setStepMode() {
         this->setStepMode(FULL_STEP);
     }
-    void A4988::setStepMode(uint8_t newMode) {
+    void A4988::setStepMode(const uint8_t newMode) {
         switch (newMode) {
             case FULL_STEP:
                 ms1 = 0;
                 ms2 = 0;
                 ms3 = 0;
-                microStepMode = FULL_STEP;
-                printf("Step Mode set to: Full Step\n\r");
                 break;
             case HALF_STEP:
                 ms1 = 1;
                 ms2 = 0;
                 ms3 = 0;
-                microStepMode = HALF_STEP;
-                printf("Step Mode set to: Half Step\n\r");
                 break;
             case QUARTER_STEP:
                 ms1 = 0;
                 ms2 = 1;
                 ms3 = 0;
-                microStepMode = QUARTER_STEP;
-                printf("Step Mode set to: Quarter Step\n\r");
                 break;
             case EIGHTH_STEP:
                 ms1 = 1;
                 ms2 = 1;
                 ms3 = 0;
-                microStepMode = EIGHTH_STEP;
-                printf("Step Mode set to: Eighth Step\n\r");
                 break;
             case SIXTEENTH_STEP:
                 ms1 = 1;
                 ms2 = 1;
                 ms3 = 1;
-                microStepMode = SIXTEENTH_STEP;
-                printf("Step Mode set to: Sixteenth Step\n\r");
                 break;
             default:
                 printf("Invalid step mode Requested\n\r");
-                break;
+                return;
         }
+        microStepMode = newMode;
+        //printf("Step Mode set to: 1\\%i\n\r", newMode);
     }
     /*!
         Increments step mode
     */
     void A4988::incStepMode() {
-        if (microStepMode >= (NUM_STEP_MODES - 1)) {
-            //!< Rollover from SIXTEENTH_STEP to FULL_STEP
-            setStepMode(FULL_STEP);
-       } else {
-           microStepMode ++;
-           setStepMode(microStepMode);
+        microStepMode *= 2;
+        if (microStepMode >= SIXTEENTH_STEP) {
+            microStepMode = SIXTEENTH_STEP;
        }
+       setStepMode(microStepMode);
     }
     /*!
         Decrements step mode
     */
     void A4988::decStepMode() {
-        if (microStepMode <= 0) {
-           //!< Rollover from FULL_STEP to SIXTEENTH_STEP
-            setStepMode(SIXTEENTH_STEP);
-       } else {
-           microStepMode --;
-           setStepMode(microStepMode);
-       }
+        microStepMode /= 2;
+        if (microStepMode <= 1) {
+            microStepMode = FULL_STEP;
+        } 
+        setStepMode(microStepMode);
     }
     /*!
         Directly sets state of step pin
         \param state
     */
-    void A4988::setStep(uint8_t state) {
+    void A4988::setStep(const uint8_t state) {
         if ( state == LOW ) {
             step = LOW;
         } else {
@@ -124,21 +112,15 @@
     */
     void A4988::setDirMode() {
         dir = !dir;
-        printf("Direction toggled\n\r");
+        //printf("Direction toggled\n\r");
     }
 
-    void A4988::setDirMode(uint8_t mode) {
-        switch (mode) {
-            case FORWARD: 
-                dir = FORWARD;
-                printf("Direction set to forward\n\r");
-                break;
-            case REVERSE:
-                dir = REVERSE;
-                printf("Direction set to reverse\n\r");
-                break;
-            default:
-                fprintf(stderr, "Invalid Direction\n\r");
+    void A4988::setDirMode(const uint8_t newDir) {
+        if((newDir == FORWARD) || (newDir == REVERSE)) {
+            dir = newDir;
+            //printf("Direction set to %i\n\r", dir);
+        } else {
+            fprintf(stderr, "A4988::setDirMode Invalid direction argument: %i\n\r", newDir);
         }
     }
     
@@ -146,7 +128,7 @@
         Increments stepper motor desired number of steps
         \param int stepCount number of steps to progress
     */
-    void A4988::increment(uint8_t stepCount) {
+    void A4988::increment(const uint8_t stepCount) {
         //printf("Taking %i steps\n\r", stepCount);
         for(int i = 0; i < stepCount; i++) {
             step = HIGH;

@@ -18,10 +18,13 @@
  */
 
 #include "mbed.h"
+#include "Helper.hpp"
+
 #include "A4988.hpp"
 #include "BalanceBot.hpp"
 #include "MPU6050.hpp"
-//#include "I2CHelper.hpp"
+
+
 
 /*!
  *  Hardware Initialization
@@ -68,7 +71,6 @@ Thread buttonThread; //!< Mnitoring push buttons
  *  Function Declarations
  */
 void threadLedRoutine(void);
-void knightRider(void);
 void threadButtonRoutine(void);
 void checkPBs(BalanceBot* bot);
 
@@ -85,29 +87,21 @@ int main()
     //!< Subroutine Calls
     ledThread.start(threadLedRoutine);
 
-    
-    A4988 leftWheel(l_step, l_dir, l_ms1, l_ms2, l_ms3);
-    A4988 rightWheel(r_step, r_dir, r_ms1, r_ms2, r_ms3);
-    BalanceBot bot(&leftWheel, &rightWheel);
-    
-
     I2C i2c(p28, p27); //!< SDA, SCL
     //I2C i2c(I2C_SDA1, I2C_SCL1);
     i2c.frequency(400000); //<! Maxspeed for MPU6050
-    MPU6050 testMPU(&i2c);
+    A4988 leftWheel(l_step, l_dir, l_ms1, l_ms2, l_ms3);
+    A4988 rightWheel(r_step, r_dir, r_ms1, r_ms2, r_ms3);
+
+    BalanceBot bot(&leftWheel, &rightWheel, &i2c);
+
     //!< Main thread
-
     while (GO_TIME) {
-        int16_t xAcceleration = 0;
-        int16_t yAcceleration = 0;
-        int16_t zAcceleration = 0;
-        
-        testMPU.getAcceleration(&xAcceleration, &yAcceleration, &zAcceleration);
 
-        checkPBs(&bot);
-        //bot.step();
-        
-        ThisThread::sleep_for(1000);
+        bot.propBalance();
+        //checkPBs(&bot);
+        //bot.step(50);
+        //ThisThread::sleep_for(500);
     }
     return EXIT_SUCCESS;
 
@@ -127,28 +121,17 @@ int main()
 void checkPBs(BalanceBot* bot)
 {
     if(topPB == 0) {
-       while(topPB == 0){
+        while(topPB == 0){
             //!< Wait for release of button
         }
-        bot->setDirection();         
-    } else if(midPB == 0 ) {
-        /*!
-            Decrease Microstep mode
-        */
-       while(midPB == 0){
+        bot->decStepMode();         
+    }
+    if(midPB == 0 ) {
+        while(midPB == 0){
             //!< Wait for release of button
         }
-       bot->incStepMode();
-//    } else if(botPB == 0) {
-//        /*!
-//             Increase Microstep mode
-//         */
-//        while(botPB == 0){
-//             //!< Wait for release of button
-//         }
-//         bot->decStepMode();
-
-   }
+        bot->incStepMode();
+    }
 }
 
 /*!
@@ -160,92 +143,7 @@ void checkPBs(BalanceBot* bot)
 void threadLedRoutine(void)
 {
     while(true) {
-        knightRider();
+        Helper::knightRider(&led1, &led2, &led3, &led4);
         ThisThread::sleep_for(BLINKING_RATE_MS);
-    }
-}
-
-/*!
- * \fn void knightRider(void)
- * \sa ledRoutine
- * 
- * Knight Rider style LED routine.
- * LEDs illiminate back and forth from left to right
- *
- */
-void knightRider(void)
-{
-    static int position = 0; //! position + 1 = next active LED
-    static bool direction = 0; //!left to right (0) or right to left (1)
-    
-    //LED Position logic
-    if (direction == 0) { //! Forward Direction
-        switch (position) {
-            case 0:
-                led1 = 1;
-                led2 = 0;
-                led3 = 0;
-                led4 = 0;
-                position++;
-                break;
-            case 1:
-                led1 = 0;
-                led2 = 1;
-                led3 = 0;
-                led4 = 0;
-                position++;
-                break;
-            case 2:
-                led1 = 0;
-                led2 = 0;
-                led3 = 1;
-                led4 = 0;
-                position++;
-                break;
-            case 3:
-                led1 = 0;
-                led2 = 0;
-                led3 = 0;
-                led4 = 1;
-                direction = 1; //reverse direction
-                position--;
-                break;
-            default:
-                position = 0; //Should NEVER get here
-        }
-    } else { //!Reverse direction == 1
-        switch (position) {
-            case 0:
-                led1 = 1;
-                led2 = 0;
-                led3 = 0;
-                led4 = 0;
-                direction = 0;
-                position++;
-                break;
-            case 1:
-                led1 = 0;
-                led2 = 1;
-                led3 = 0;
-                led4 = 0;
-                position--;
-                break;
-            case 2:
-                led1 = 0;
-                led2 = 0;
-                led3 = 1;
-                led4 = 0;
-                position--;
-                break;
-            case 3:
-                led1 = 0;
-                led2 = 0;
-                led3 = 0;
-                led4 = 1;
-                position--; //reverse direction
-                break;
-            default:
-                position = 1; //Should NEVER get here
-        }
     }
 }

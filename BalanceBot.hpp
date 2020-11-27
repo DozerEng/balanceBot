@@ -19,12 +19,22 @@
 #include "MPU6050.hpp"
 // #include "PID_Controller.hpp"
 
+#include <cmath>
+#ifndef M_PI
+    #define M_PI           3.14159265358979323846
+#endif
+
  #ifndef BALANCE_BOT_H 
  #define BALANCE_BOT_H 
 
 /*! 
     Constants
  */
+#define BALANCE_POINT           0.0 //!< Tilt angle to balance at
+
+#define DEGREES_PER_STEP        1.8 //<! NEMA 17 Stepper Motor
+#define STEPS_PER_REVOLUTION    200 //!< # of FULL_STEP 
+#define NUM_TILT_SAMPLES        10
 /*!
     Data Types
  */
@@ -37,30 +47,31 @@
  */
 class BalanceBot {
 private: 
+
+    MPU6050 mpu;
     A4988* leftWheel;
     A4988* rightWheel;
+
+    uint8_t stepMode;
+    double setPoint = BALANCE_POINT;
     
 public:
-    BalanceBot (A4988 *lw, A4988* rw);
+    BalanceBot (A4988 *lw, A4988* rw, I2C* i2c);
 
-    /*!
-        Incrememnt both wheels forward
-        \param count Number of steps to rotate wheels
-     */
     void step(const uint8_t count = 1);
-    /*!
-        Set direction of both wheels
-        \param dir Direction to set wheels. No arg toggles state
-     */
-    void setDirection(void);
-    void setDirection(const uint8_t dir);
-    /*!
-        Set wheel motor microstepping mode
-        Calls corresponding A4988 stepMode function
-    */
+
     void setStepMode(const uint8_t mode);
     void incStepMode();
     void decStepMode();
+
+    void setDirection(void);
+    void setDirection(const uint8_t dir);
+
+    double getTilt(void);
+    double getTiltDegrees(void);
+    
+    void propBalance(void);
 };
 
 #endif
+

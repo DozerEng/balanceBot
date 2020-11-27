@@ -19,24 +19,15 @@
 #define STEP_DELAY 2        //!< DigitalOut delay
 
 //!< Setting step direction based on the MSx outputs
-#define FULL_STEP       0 //!< Low Low Low
-#define HALF_STEP       1 //!< High Low Low
-#define QUARTER_STEP    2 //!< Low High Low
-#define EIGHTH_STEP     3 //!< High High Low
-#define SIXTEENTH_STEP  4 //!< High High High
+#define FULL_STEP       1 //!< Low Low Low
+#define HALF_STEP       2 //!< High Low Low
+#define QUARTER_STEP    4 //!< Low High Low
+#define EIGHTH_STEP     8 //!< High High Low
+#define SIXTEENTH_STEP  16 //!< High High High
 
 #define MS1_MASK    0x01
 #define MS2_MASK    0x02    //<! Binary shift output >> 1
 #define MS3_MASK    0x04    //<! Binary shift output >> 2
-
-#define NUM_STEP_MODES 5
-const char STEP_MODES[NUM_STEP_MODES] = { 
-    FULL_STEP, 
-    HALF_STEP, 
-    QUARTER_STEP, 
-    EIGHTH_STEP, 
-    SIXTEENTH_STEP
-    };
 
 #define FORWARD     0
 #define REVERSE     1
@@ -90,14 +81,14 @@ public:
         \param newMode set mode for Microstepping
     */
     void setStepMode();
-    void setStepMode(uint8_t);
+    void setStepMode(const uint8_t);
     void incStepMode();
     void decStepMode();
     /*!
         Directly sets state of step pin
         \param state HIGH/LOW
     */
-    void setStep(uint8_t state);
+    void setStep(const uint8_t state);
 
     /*!
         Sets direction mode
@@ -105,13 +96,13 @@ public:
         \param char mode enum for direction mode
     */
     void setDirMode();
-    void setDirMode(uint8_t mode) ;
+    void setDirMode(const uint8_t mode) ;
     
     /*!
         Increments stepper motor desired number of steps
         \param int stepCount number of steps to progress
     */
-    void increment(uint8_t stepCount = 1) ;
+    void increment(const uint8_t stepCount = 1) ;
 
     /*!
         Get Functions

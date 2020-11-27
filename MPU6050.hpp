@@ -15,8 +15,7 @@
  */
 
 #include "mbed.h"
-#include "I2CHelper.hpp"
-#include <cstdint>
+//#include "I2CHelper.hpp"
 
 #ifndef MPU6050_H
 #define MPU6050_H
@@ -206,38 +205,16 @@ CLKSEL          Clock Source
 /*!
     MPU6050 class
 
-    
-
  */
 
 class MPU6050 {
 private:
     I2C* i2c;
 public:
-    /*!
-        Constructor
-        \param i2c Pointer to an I2C object
-    */
     MPU6050 (I2C* i2c);
-
-    /*!
-        Enable Sleep mode
-        \param state ENABLE / DISABLE
-    */
     void enableSleep(uint8_t state);
-    /*!
-        Sets clock reference
-        \param freq Frequency for I2C clock
-    */
     void setI2CFreq(uint8_t freq);
-    /*!
-        Check axis value
-        \param x Pointer to variable to store x accelerometer data
-        \param y Pointer to variable to store y accelerometer data
-        \param z Pointer to variable to store z accelerometer data
-    */
     void getAcceleration(int16_t* x, int16_t* y, int16_t* z);
-
 
 };
 

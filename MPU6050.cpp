@@ -15,7 +15,7 @@
 MPU6050::MPU6050 (I2C* i2c) 
     : i2c(i2c) {
     //!< Make sure MPU is awake
-    this->enableSleep(ENABLE);
+    this->enableSleep(DISABLE);
     //Change clock source to a gyro axis
     //Set I2C frequency in I2C_MST_CTRL
     //Set GYRO_CONFIG register page 14
@@ -32,7 +32,11 @@ void MPU6050::enableSleep(uint8_t state){
     //!< Get current device state then mask off sleep bit
     i2c->write(MPU6050_ADDRESS_8BIT, data, 1, true);
     i2c->read(MPU6050_ADDRESS_8BIT, &data[1], 1);
-    data[1] = data[1] & 0xBF; //!< Ensure sleep mode bit is zero
+    if(state == DISABLE) {
+        data[1] = data[1] & 0xBF; //!< Sleep mode bit = 0
+    } else if (state == ENABLE) {
+        data[1] = data[1] | 0x40; //!< Sleep mode bit = 1
+    }
     i2c->write(MPU6050_ADDRESS_8BIT, data, 2);
 }
 
@@ -50,8 +54,5 @@ void MPU6050::getAcceleration(int16_t* x, int16_t* y, int16_t* z) {
     *x = (int16_t(rData[0]) << 8) | rData[1];
     *y = (int16_t(rData[2]) << 8) | rData[3];
     *z = (int16_t(rData[4]) << 8) | rData[5];
-    printf("x Acceleration: %i\n\r", *x);
-    printf("y Acceleration: %i\n\r", *y);
-    printf("z Acceleration: %i\n\r", *z);
 }
 
