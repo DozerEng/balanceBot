@@ -12,8 +12,9 @@ BalanceBot::BalanceBot(A4988* lw, A4988* rw, I2C* i2c) :
     leftWheel(lw),
     rightWheel(rw)
     {
+    
 
-    printf("Successfully initialized BalanceBot\n\r");
+    printf("\n\rBalanceBot is online...\n\n\r");
 }
 
 /*!
@@ -70,7 +71,7 @@ void BalanceBot::decStepMode() {
 double BalanceBot::getTilt() {
     int16_t xAcceleration, yAcceleration, zAcceleration;
 
-    mpu.getAcceleration(&xAcceleration, &yAcceleration, &zAcceleration);
+    mpu.getAccel(&xAcceleration, &yAcceleration, &zAcceleration);
 
     return atan2( xAcceleration, zAcceleration );
 }

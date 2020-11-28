@@ -98,8 +98,8 @@ int main()
     //!< Main thread
     while (GO_TIME) {
 
-        bot.propBalance();
-        //checkPBs(&bot);
+        //bot.propBalance();
+        checkPBs(&bot);
         //bot.step(50);
         //ThisThread::sleep_for(500);
     }
@@ -124,13 +124,16 @@ void checkPBs(BalanceBot* bot)
         while(topPB == 0){
             //!< Wait for release of button
         }
-        bot->decStepMode();         
+        
+        double temperature = bot->mpu.getTemp();
+        printf("Current Temperature %0.1f degrees celcius\n\r", temperature);         
     }
     if(midPB == 0 ) {
         while(midPB == 0){
             //!< Wait for release of button
         }
-        bot->incStepMode();
+        int16_t gyroX, gyroY, gyroZ;
+        bot->mpu.getGyro(&gyroX, &gyroY, &gyroZ); 
     }
 }
 

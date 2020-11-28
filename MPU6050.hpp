@@ -26,20 +26,30 @@
  */
 #define MPU6050_ADDRESS_7BIT     0x68 //!< 7-bit address
 #define MPU6050_ADDRESS_8BIT     0xD0 //!< 8-bit address
-/*!<
+/*!
     Self Tests for accel/gyro
+
+Reg     Bit7    Bit6    Bit5    Bit4    Bit3    Bit2    Bit1    Bit0
+0x0D        XA_TEST[4-2]                    XG_TEST[4-0]
+0x0E        YA_TEST[4-2]                    YG_TEST[4-0]
+0x0F        ZA_TEST[4-2]                    ZG_TEST[4-0]
+0x10    RESERVED        XA_TEST[1-0]    YA_TEST[1-0]    ZA_TEST[1-0]
+
  */
 #define SELF_TEST_X         0x0D
 #define SELF_TEST_Y         0x0E    
 #define SELF_TEST_Z         0x0F
 #define SELF_TEST_A         0x10
-/*!<
+
+#define PASSED              true
+#define FAILED              false
+/*!
     Returns sample rate as:
     sample rate = gyroscope output rate / ( 1 + SMPLRT_DIV )
     Register returns uint8_t
  */
 #define SMPLRT_DIV          0x19    
-/*!< 
+/*!
     General Config.
     Settings for both accel and gyro.
     FSYNC - External Frame Synchronization
@@ -47,7 +57,7 @@
     See Page 13
  */
 #define CONFIG              0x1A    //!< General Config
-/*!< 
+/*!
     Gyroscope Config
     
 FS_SEL      Full Scale Range
@@ -68,7 +78,12 @@ FS_SEL      Full Scale Range
     Triggering self test stores results in SELF_TEST_x  registers
  */
 #define GYRO_CONFIG         0x1B
-/*!< 
+#define GYRO_SCALE_250      0
+#define GYRO_SCALE_500      1
+#define GYRO_SCALE_1000     2
+#define GYRO_SCALE_2000     3
+
+/*!
     Accelerometer Config
 
 AFS_SEL     Full Scale Range
@@ -80,8 +95,8 @@ AFS_SEL     Full Scale Range
     Bit7    X axis self test trigger
     Bit6    Y axis self test trigger
     Bit5    z axis self test trigger
-    Bit4    AFS_SEL[1] <-- Bits may be out of order,
-    Bit3    AFS_SEL[0] <-- Requires testing
+    Bit4    AFS_SEL[1]
+    Bit3    AFS_SEL[0]
     Bit2    N/A
     Bit1    N/A
     Bit0    N/A
@@ -89,6 +104,10 @@ AFS_SEL     Full Scale Range
     Triggering self test stores results in SELF_TEST_x  registers
  */
 #define ACCEL_CONFIG        0x1C
+#define ACCEL_SCALE_2G      0
+#define ACCEL_SCALE_4G      1
+#define ACCEL_SCALE_8G      2
+#define ACCEL_SCALE_16G     3
 
 #define MOT_THR             0x1F //!< Threshold for motion detect interupt (Accelerometer)
 #define FIFO_EN             0x23
@@ -115,21 +134,35 @@ AFS_SEL     Full Scale Range
 #define INT_ENABLE          0x38
 
 #define INT_STATUS          0x3A
+/*!
+    Accelerometer data registers
+    Data is int16_t
+ */
 #define ACCEL_XOUT_H        0x3B
 #define ACCEL_XOUT_L        0x3C
 #define ACCEL_YOUT_H        0x3D
 #define ACCEL_YOUT_L        0x3E
 #define ACCEL_ZOUT_H        0x3F
 #define ACCEL_ZOUT_L        0x40
+/*!
+    Temperature data registers
+    Data is int16_t
+ */
 #define TEMP_OUT_H          0x41
 #define TEMP_OUT_L          0x42
+/*!
+    Gyroscope data registers
+    Data is int16_t
+ */
 #define GYRO_XOUT_H         0x43
 #define GYRO_XOUT_L         0x44
 #define GYRO_YOUT_H         0x45
 #define GYRO_YOUT_L         0x46
 #define GYRO_ZOUT_H         0x47
 #define GYRO_ZOUT_L         0x48
-
+/*!
+    External sensor data registers
+ */
 #define EXT_SENS_DATA_00    0x49
 #define EXT_SENS_DATA_01    0x4A
 #define EXT_SENS_DATA_02    0x4B
@@ -187,6 +220,11 @@ CLKSEL          Clock Source
     7       Stops the clock and keeps the timing generator in reset
  */
 #define PWR_MGMT_1          0x6B
+#define CLK_REF_INTERNAL    0x00
+#define CLK_REF_X_GYRO      0x01
+#define CLK_REF_Y_GYRO      0x02
+#define CLK_REF_Z_GYRO      0x03
+
 #define PWR_MGMT_2          0x6C
 #define FIFO_COUNTH         0x72
 #define FIFO_COUNTL         0x73
@@ -212,9 +250,26 @@ private:
     I2C* i2c;
 public:
     MPU6050 (I2C* i2c);
+
+    void configure(uint8_t config);
+    void setClockSource(uint8_t source);
     void enableSleep(uint8_t state);
-    void setI2CFreq(uint8_t freq);
-    void getAcceleration(int16_t* x, int16_t* y, int16_t* z);
+    void enableTemp(uint8_t state);
+    void selfTest(void);
+    uint8_t whoAmI(void);
+    void resetDevice(void);
+
+    double getTemp(void);
+
+    void getAccel(int16_t* x, int16_t* y, int16_t* z);
+    void getGyro(int16_t* x, int16_t* y, int16_t* z);
+    
+    void setAccelScale(uint8_t scale);
+    uint8_t getAccelScale(void);
+    void setGyroScale(uint8_t scale);
+    uint8_t getGyroScale(void);
+     
+    
 
 };
 

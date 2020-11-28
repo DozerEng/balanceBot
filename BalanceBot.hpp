@@ -48,7 +48,6 @@
 class BalanceBot {
 private: 
 
-    MPU6050 mpu;
     A4988* leftWheel;
     A4988* rightWheel;
 
@@ -56,6 +55,7 @@ private:
     double setPoint = BALANCE_POINT;
     
 public:
+    MPU6050 mpu;
     BalanceBot (A4988 *lw, A4988* rw, I2C* i2c);
 
     void step(const uint8_t count = 1);

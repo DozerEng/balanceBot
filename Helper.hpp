@@ -20,6 +20,8 @@ namespace Helper {
 
 void knightRider(DigitalOut* led1, DigitalOut* led2, DigitalOut* led3, DigitalOut* led4);
 
+
+
 }
 
 /*!
