@@ -22,16 +22,12 @@ MPU6050::MPU6050 (I2C* i2c)
         Returns zero if no response
      */
     if( whoAmI() ) {
-        //!< Ensure all registers are reset to zero
+        //!< Reset MPU6050 to set all registers to default (0x00)
         resetDevice();
-        //!< Make sure MPU is awake
+        //!< Make sure MPU is awake. Reset puts device to sleep
         enableSleep(DISABLE);
         //!< Change clock source to a gyro axis
         setClockSource(CLK_REF_X_GYRO);
-
-        //Set I2C frequency in I2C_MST_CTRL
-        //Configure Digital Low Pass Filter
-
         //!< Set gyroscope scale
         setGyroScale(GYRO_SCALE_250);
         //!< Set accelerometer scale
@@ -65,10 +61,11 @@ void MPU6050::resetDevice(){
     char data[2];
     data[0] = PWR_MGMT_1; //!< PWR_MGMT_1
     //!< Get current device state
-    i2c->write(MPU6050_ADDRESS_8BIT, data, 1, true);
-    i2c->read(MPU6050_ADDRESS_8BIT, &data[1], 1);
-    data[1] = data[1] | 0x80;
+    // i2c->write(MPU6050_ADDRESS_8BIT, data, 1, true);
+    // i2c->read(MPU6050_ADDRESS_8BIT, &data[1], 1);
+    data[1] = 0x80;
     i2c->write(MPU6050_ADDRESS_8BIT, data, 2);
+    wait_us(WAIT_FOR_MPU);
 }
 /*!
     Enable Sleep mode
@@ -98,6 +95,23 @@ void MPU6050::enableSleep(uint8_t state){
     }
     i2c->write(MPU6050_ADDRESS_8BIT, data, 2);
 }
+
+/*!
+    Configures the digital low pass filter
+
+    \param state ENABLE / DISABLE
+*/
+void MPU6050::setDLPF(uint8_t dlfp_cfg){
+    char data[2];
+    data[0] = CONFIG; //!< PWR_MGMT_1
+    //!< Get current device state
+    i2c->write(MPU6050_ADDRESS_8BIT, data, 1, true);
+    i2c->read(MPU6050_ADDRESS_8BIT, &data[1], 1);
+    //!< Turn all DLPF bits off then mask with dlfp_cfg
+    data[1] = ( data[1] & 0xF8 ) | dlfp_cfg;
+    i2c->write(MPU6050_ADDRESS_8BIT, data, 2);
+}
+
 /*!
     Enable Temperature sensor
 
@@ -307,7 +321,7 @@ void MPU6050::selfTest(void) {
     cmd[1] = 0xE0; //!< Test all axis at 250 degree/sec
     cmd[2] = 0xE0; //!< Test all axis at 2g
     i2c->write(MPU6050_ADDRESS_8BIT, cmd, 3);
-    ThisThread::sleep_for(10);
+    wait_us(WAIT_FOR_MPU);
 
     /*!
         Get self test results as 5 bit unsinged integers
@@ -318,13 +332,13 @@ void MPU6050::selfTest(void) {
     i2c->write(MPU6050_ADDRESS_8BIT, cmd, 1, true);
     i2c->read(MPU6050_ADDRESS_8BIT, data, 4);
     //!< See table above for bit combinations
-    xA = ( (data[3] & 0x30) | ( (data[0] & 0xE0) >> 5 ) ) & 0x1F;
-    yA = ( (data[3] & 0x0C) | ( (data[1] & 0xE0) >> 5 ) ) & 0x1F;
-    zA = ( (data[3] & 0x03) | ( (data[2] & 0xE0) >> 5 ) ) & 0x1F;
+    xA = ( ( (data[3] & 0x30) >> 4 ) | ( (data[0] & 0xE0) >> 5 ) ) & 0x1F;
+    yA = ( ( (data[3] & 0x0C) >> 2 ) | ( (data[1] & 0xE0) >> 5 ) ) & 0x1F;
+    zA = (   (data[3] & 0x03)        | ( (data[2] & 0xE0) >> 5 ) ) & 0x1F;
     xG = (data[0] & 0x1F);
     yG = (data[1] & 0x1F);
     zG = (data[2] & 0x1F);
-    //!< 5 Bit unsiged max value = 32
+    //!< 5 Bit unsiged int, max value = 32
     printf("Raw0: 0x%X  Raw1: 0x%X  Raw2: 0x%X  Raw3: 0x%X\n\r", data[0], data[1], data[2], data[3]);
     printf("XA: %i   YA: %i   ZA: %i\n\r", xA, yA, zA);
     printf("XG: %i   YG: %i   ZG: %i\n\r", xG, yG, zG);
@@ -341,13 +355,13 @@ void MPU6050::selfTest(void) {
     whoAmI() checks WHO_AM_I register
     Checks if MPU6050 is listening
     Response is device address
-        0x68 by default (7 Bit Address) in uint8_t
+        - 0x68 by default (7 Bit Address) as uint8_t
  */
 uint8_t MPU6050::whoAmI(void) {
     char reg = WHO_AM_I; 
     char data = 0;
     i2c->write(MPU6050_ADDRESS_8BIT, &reg, 1, true);
     i2c->read(MPU6050_ADDRESS_8BIT, &data, 1);
-    printf("MPU6050 slave at I2C address: 0x%X\n\r", data);
+    printf("MPU6050 slave listening at I2C address: 0x%X\n\r", data);
     return uint8_t(data);
 }

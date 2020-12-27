@@ -5,6 +5,9 @@
  * \author Michael Pillon
  *
  *  The MCU6050 uses I2C communication.
+ * 
+ *  TODO: Set I2C frequency in I2C_MST_CTRL
+ *  TODO: Configure Digital Low-Pass Filter
  *
  *  Register map and usage:
  *  https://cdn.sparkfun.com/datasheets/Sensors/Accelerometers/RM-MPU-6000A.pdf
@@ -52,11 +55,30 @@ Reg     Bit7    Bit6    Bit5    Bit4    Bit3    Bit2    Bit1    Bit0
 /*!
     General Config.
     Settings for both accel and gyro.
-    FSYNC - External Frame Synchronization
-    DLPF - Digital Low Pass Filter
-    See Page 13
+    Digital low pass filter will filter noise out at frequencies 
+        FSYNC - External Frame Synchronization
+        DLPF - Digital Low Pass Filter
+
+        Bit7    N/A
+        Bit6    N/A
+        Bit5    EXT_SYNC_SET[2:0]
+        Bit4    EXT_SYNC_SET[2:0]
+        Bit3    EXT_SYNC_SET[2:0]
+        Bit2    DLPF_CFG[2:0]
+        Bit1    DLPF_CFG[2:0]
+        Bit0    DLPF_CFG[2:0]
+
+    See Page 13 of register map for details
  */
 #define CONFIG              0x1A    //!< General Config
+#define DLPF_CFG_0          0x00    //!< Accel: 260Hz - Gyro: 256Hz
+#define DLPF_CFG_1          0x01    //!< Accel: 184Hz - Gyro: 188Hz
+#define DLPF_CFG_2          0x02    //!< Accel: 94Hz - Gyro: 98Hz
+#define DLPF_CFG_3          0x03    //!< Accel: 44Hz - Gyro: 42Hz
+#define DLPF_CFG_4          0x04    //!< Accel: 21Hz - Gyro: 20Hz
+#define DLPF_CFG_5          0x05    //!< Accel: 10Hz - Gyro: 10Hz
+#define DLPF_CFG_6          0x06    //!< Accel: 5Hz - Gyro: 5Hz
+
 /*!
     Gyroscope Config
     
@@ -234,7 +256,7 @@ CLKSEL          Clock Source
 /*!
     Constants
  */
-#define RESET_REGISTER      0x00 //!< Reset for all except 0x6B and 0x75 registers
+#define WAIT_FOR_MPU 1000 //!< Wait for MPU6050. Minimum value for reset, useful elsewhere. In microseconds.
 
 #define ENABLE      1
 #define DISABLE     0
@@ -251,14 +273,16 @@ private:
 public:
     MPU6050 (I2C* i2c);
 
+    void resetDevice(void);
     void configure(uint8_t config);
     void setClockSource(uint8_t source);
-    void enableSleep(uint8_t state);
-    void enableTemp(uint8_t state);
     void selfTest(void);
     uint8_t whoAmI(void);
-    void resetDevice(void);
+    void setDLPF(uint8_t dlfp_cfg);
 
+    void enableSleep(uint8_t state);
+
+    void enableTemp(uint8_t state);
     double getTemp(void);
 
     void getAccel(int16_t* x, int16_t* y, int16_t* z);

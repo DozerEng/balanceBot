@@ -1,20 +1,17 @@
 /*!
- * \file main.cpp
- * \brief Main page for controlling robot arm
- * 
- * \author Michael Pillon
- * \date Created: October 21, 2020
- * \date Last Modified: October 21, 2020
- * 
- * Uses RobotArm class to control EEZYbotARM MK2 robot arm from thingiverse.com
- * https://www.thingiverse.com/thing:1454048
- *              
- * Using MBED OS6
- *
- * Outstanding Tasks: Do everything!
- *      - I2C test for PCA9685
- * 
- * 
+    \file main.cpp
+    \brief 2 wheel self balancing robot
+
+    \author Michael Pillon
+    \date Created: November 21, 2020
+ 
+    Main program for self balancing robot.
+    Using mbed LPC1768 microcontorller,
+        MPU6050 IMU,
+        2x A4988 stepper motor driver boards,
+        2x NEMA 17 stepper motors,
+        2x external pushbuttons 
+    
  */
 
 #include "mbed.h"
@@ -25,42 +22,22 @@
 #include "MPU6050.hpp"
 
 
-
 /*!
- *  Hardware Initialization
+    Hardware Initialization
  */
 DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 DigitalOut led3(LED3);
 DigitalOut led4(LED4);
 
-DigitalIn topPB(p5);
-DigitalIn midPB(p6);
-DigitalIn botPB(p7);
-
-//Left Wheel
-DigitalOut l_step(p19);
-DigitalOut l_dir(p20);
-DigitalOut l_ms1(p14);
-DigitalOut l_ms2(p15);
-DigitalOut l_ms3(p16);
-//Right Wheel
-DigitalOut r_step(p17);
-DigitalOut r_dir(p18);
-DigitalOut r_ms1(p11);
-DigitalOut r_ms2(p12);
-DigitalOut r_ms3(p13);
-
-
 Thread ledThread; //!< Handling onboard LED routine
-Thread buttonThread; //!< Mnitoring push buttons
 
 /*!
- *  Defines
+    Defines
  */
 
-#define GO_TIME             true   //!< It's always go time!
-#define BLINKING_RATE_MS    150 //!< Blinking rate in milliseconds
+#define GO_TIME             true    //!< It's always go time!
+#define BLINKING_RATE_MS    200     //!< Blinking rate in microseconds
 #define BUTTON_DELAY        500
 #define BUTTON_DEBOUNCE     20  
 #define WAIT                1000
@@ -68,82 +45,53 @@ Thread buttonThread; //!< Mnitoring push buttons
 
 
 /*!
- *  Function Declarations
+    Function Declarations
  */
-void threadLedRoutine(void);
-void threadButtonRoutine(void);
-void checkPBs(BalanceBot* bot);
+void threadHeartbeat(void);
 
 /*!
- *  \fn int std::main()
- *  \brief Main
- *  
- *  \return Exit success/failure
+    \fn int std::main()
+    \brief Main
+
+    \return Exit success/failure
  */
 
 
 int main()
 {
+    
     //!< Subroutine Calls
-    ledThread.start(threadLedRoutine);
+    ledThread.start(threadHeartbeat);
 
+    printf("\n\rStarting MBED...\n\r");
     I2C i2c(p28, p27); //!< SDA, SCL
     //I2C i2c(I2C_SDA1, I2C_SCL1);
     i2c.frequency(400000); //<! Maxspeed for MPU6050
-    A4988 leftWheel(l_step, l_dir, l_ms1, l_ms2, l_ms3);
-    A4988 rightWheel(r_step, r_dir, r_ms1, r_ms2, r_ms3);
 
-    BalanceBot bot(&leftWheel, &rightWheel, &i2c);
+    BalanceBot bot(&i2c);
 
     //!< Main thread
     while (GO_TIME) {
+        //bot.handlePBs();
 
-        //bot.propBalance();
-        checkPBs(&bot);
-        //bot.step(50);
-        //ThisThread::sleep_for(500);
+        ThisThread::sleep_for(100);
+        //wait_us(100000);
+
     }
     return EXIT_SUCCESS;
 
 }
 
 /*!
- *  Function Definitions
- */
+    \fn void threadHeartbeat(void)
 
+    Subroutine for control over 4 onboard LEDs
+    Handles what function to call and rate for blinking
 
-/*!
- * \fn void checkPBs()
- *
- * Checks if any push buttons are pressed and calls handlers 
- *
+    Use as a heartbeat indicator for major faults.
+    During a major fault, LED1 blinks repeatedly.
  */
-void checkPBs(BalanceBot* bot)
-{
-    if(topPB == 0) {
-        while(topPB == 0){
-            //!< Wait for release of button
-        }
-        
-        double temperature = bot->mpu.getTemp();
-        printf("Current Temperature %0.1f degrees celcius\n\r", temperature);         
-    }
-    if(midPB == 0 ) {
-        while(midPB == 0){
-            //!< Wait for release of button
-        }
-        int16_t gyroX, gyroY, gyroZ;
-        bot->mpu.getGyro(&gyroX, &gyroY, &gyroZ); 
-    }
-}
-
-/*!
- * \fn void ledRoutine(void)
- *
- * Subroutine for control over onboard LEDs
- * Handles what function to call and rate for blinking
- */
-void threadLedRoutine(void)
+void threadHeartbeat(void)
 {
     while(true) {
         Helper::knightRider(&led1, &led2, &led3, &led4);

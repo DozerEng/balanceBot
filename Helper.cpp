@@ -11,14 +11,12 @@
 
 namespace Helper {
 
-    
 /*!
- * \fn void knightRider(void)
- * \sa ledRoutine
- * 
- * Knight Rider style LED routine.
- * LEDs illiminate back and forth from left to right
- *
+    \fn void knightRider(void)
+
+    Knight Rider style LED routine.
+    LEDs illiminate back and forth from left to right
+ 
  */
 void knightRider(DigitalOut* led1, DigitalOut* led2, DigitalOut* led3, DigitalOut* led4)
 {

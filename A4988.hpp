@@ -15,8 +15,9 @@
 /*! 
     Constants
  */
-#define STEP_OSC  100.0     //!< 1us minimum, measured in ms 
-#define STEP_DELAY 2        //!< DigitalOut delay
+#define STEP_DELAY 1000     //!< DigitalOut delay in microseconds
+#define DEGREES_PER_STEP        1.8 //<! For NEMA 17 Stepper Motor
+#define STEPS_PER_REVOLUTION    200 //!< # of FULL_STEP per full revolution
 
 //!< Setting step direction based on the MSx outputs
 #define FULL_STEP       1 //!< Low Low Low
@@ -67,7 +68,7 @@ public:
         \param ms2 Pin for MS2 microstepping mode register
         \param ms3 Pin for MS3 microstepping mode register
     */
-    A4988(DigitalOut step, DigitalOut dir, DigitalOut ms1, DigitalOut ms2, DigitalOut ms3);
+    A4988(PinName step, PinName dir, PinName ms1, PinName ms2, PinName ms3);
     
     /*!
         Sets MSx outputs for requested step mode
@@ -102,7 +103,7 @@ public:
         Increments stepper motor desired number of steps
         \param int stepCount number of steps to progress
     */
-    void increment(const uint8_t stepCount = 1) ;
+    void increment(const uint16_t stepCount = 1) ;
 
     /*!
         Get Functions

@@ -14,7 +14,7 @@
 
 class PID_Controller {
 private:
-    double deltaT = 0.0;
+    double deltaT = 1.0;
     double kc;  // The proportional gain
     double ti;    // Integral Term
     double td;    // Derivative Term

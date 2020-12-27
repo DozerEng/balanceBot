@@ -17,24 +17,52 @@
 #include "mbed.h"
 #include "A4988.hpp"
 #include "MPU6050.hpp"
-// #include "PID_Controller.hpp"
+#include "PID_Controller.hpp"
 
 #include <cmath>
 #ifndef M_PI
+    //M_PI unavailable by default on mbed
     #define M_PI           3.14159265358979323846
 #endif
 
- #ifndef BALANCE_BOT_H 
- #define BALANCE_BOT_H 
+#ifndef BALANCE_BOT_H 
+#define BALANCE_BOT_H 
+/*!
+    Hardware Defines
+ */
+ /*!
+    \def STEP_MASK
+    Match L_STEP and R_STEP pins. Make sure they are on the same port.
+    p19 => P1.30 (Port1 #30)
+    p20 => P1.31 (Port1 #31)
+    0xC0000000 == 0b11000000000000000000000000000000
+    
+ */
+#define STEP_MASK_ON    0xC0000000
+#define STEP_MASK_OFF   0
+//!< Left Wheel Pins
+#define L_STEP  p19
+#define L_DIR   p17
+#define L_MS1   p14
+#define L_MS2   p15
+#define L_MS3   p16
+//!< Right Wheel Pins
+#define R_STEP  p20
+#define R_DIR   p18
+#define R_MS1   p11
+#define R_MS2   p12
+#define R_MS3   p13
+//!< Pushbuttons
+#define TOP_PB  p5
+#define BOT_PB  p6
 
 /*! 
     Constants
  */
-#define BALANCE_POINT           0.0 //!< Tilt angle to balance at
+#define ROBOT_ON        true
+#define ROBOT_OFF       false
+#define BALANCE_POINT   0.0 //!< Tilt angle for balancing with no movement
 
-#define DEGREES_PER_STEP        1.8 //<! NEMA 17 Stepper Motor
-#define STEPS_PER_REVOLUTION    200 //!< # of FULL_STEP 
-#define NUM_TILT_SAMPLES        10
 /*!
     Data Types
  */
@@ -47,18 +75,38 @@
  */
 class BalanceBot {
 private: 
-
-    A4988* leftWheel;
-    A4988* rightWheel;
-
-    uint8_t stepMode;
-    double setPoint = BALANCE_POINT;
-    
-public:
+    //!< IMU
     MPU6050 mpu;
-    BalanceBot (A4988 *lw, A4988* rw, I2C* i2c);
+    PID_Controller pid;
+    
+    //!< Motors
+    PortOut bothWheels; //!< Step pins for both wheels for synchronized stepping
+    A4988 leftWheel;
+    A4988 rightWheel;
+    //!< Onboard Pushbuttons
+    DigitalIn topPB;
+    DigitalIn botPB;
 
-    void step(const uint8_t count = 1);
+    /*!
+        Measures azimuth tilt angle of robot using MPU6050 and PID_Controller
+        \sa balanceThreadRoutine
+     */
+    Thread balanceThread;
+
+    //!< Registers
+    uint8_t stepMode;
+    double setPoint;
+    
+    /*!
+        Private methods
+    */
+    void balanceThreadRoutine(void);
+    void runMotors(double azimuth);
+         
+public:
+    BalanceBot (I2C* i2c);
+
+    void step(const uint16_t count = 1);
 
     void setStepMode(const uint8_t mode);
     void incStepMode();
@@ -70,7 +118,15 @@ public:
     double getTilt(void);
     double getTiltDegrees(void);
     
-    void propBalance(void);
+    void handlePBs(void);
+
+    /*!
+        Test functions
+        These functions are all in BalanceBotTests.cpp and test functionality of the robot
+     */
+    void runAllTests(void);
+    void testWheels(void);
+
 };
 
 #endif

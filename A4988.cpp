@@ -18,10 +18,15 @@
         \param ms2 Pin for MS2 microstepping mode register
         \param ms3 Pin for MS3 microstepping mode register
     */
-    A4988::A4988(DigitalOut step, DigitalOut dir, DigitalOut ms1, DigitalOut ms2, DigitalOut ms3) : 
-        step(step), dir(dir), ms1(ms1), ms2(ms2), ms3(ms3) {
+    A4988::A4988(PinName step, PinName dir, PinName ms1, PinName ms2, PinName ms3) : 
+        step(step),
+        dir(dir),
+        ms1(ms1),
+        ms2(ms2),
+        ms3(ms3) 
+        {
             printf("Initializing A4988...\n\r");
-            setStepMode(); //!< Default to full step mode
+            setStepMode(); //!< Default is full step mode
             setDirMode(FORWARD);
             printf("Successfuly initialized A4988\n\r");
          };
@@ -128,13 +133,13 @@
         Increments stepper motor desired number of steps
         \param int stepCount number of steps to progress
     */
-    void A4988::increment(const uint8_t stepCount) {
+    void A4988::increment(const uint16_t stepCount) {
         //printf("Taking %i steps\n\r", stepCount);
         for(int i = 0; i < stepCount; i++) {
             step = HIGH;
-            ThisThread::sleep_for(STEP_DELAY);
+            wait_us(STEP_DELAY);
             step = LOW;
-            ThisThread::sleep_for(STEP_DELAY);
+            wait_us(STEP_DELAY);
         }
     }
     /*!
@@ -142,10 +147,10 @@
         \return int current step mode
     */
     int A4988::getStepMode() {
-        printf("Current Step Mode: %i\n\r", microStepMode);
+        //printf("Current Step Mode: %i\n\r", microStepMode);
         return microStepMode;
     }
     char A4988::getDirMode() {
-        printf("Current Direction Mode: %i\n\r", currentDirection);
+        //printf("Current Direction Mode: %i\n\r", currentDirection);
         return currentDirection;
     };
