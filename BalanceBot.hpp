@@ -32,10 +32,10 @@
  */
  /*!
     \def STEP_MASK
-    Match L_STEP and R_STEP pins. Make sure they are on the same port.
-    p19 => P1.30 (Port1 #30)
-    p20 => P1.31 (Port1 #31)
-    0xC0000000 == 0b11000000000000000000000000000000
+    Match L_STEP and R_STEP pins. Both step pins MUST be on the same port for synchronous wheel movement.
+    p19 => P1.30 (Port1.30)
+    p20 => P1.31 (Port1.31)
+    Mask: 0xC0000000 == 0b11000000000000000000000000000000
     
  */
 #define STEP_MASK_ON    0xC0000000
@@ -61,7 +61,7 @@
  */
 #define ROBOT_ON        true
 #define ROBOT_OFF       false
-#define BALANCE_POINT   0.0 //!< Tilt angle for balancing with no movement
+#define BALANCE_POINT   -6.0 //!< Tilt angle for balancing with no movement
 
 /*!
     Data Types
@@ -122,7 +122,7 @@ public:
 
     /*!
         Test functions
-        These functions are all in BalanceBotTests.cpp and test functionality of the robot
+        These functions are all in BalanceBotTests.cpp and test general functionality of the robot and relevant methods.
      */
     void runAllTests(void);
     void testWheels(void);

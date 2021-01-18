@@ -72,15 +72,11 @@ int main()
 
     //!< Main thread
     while (GO_TIME) {
-        //bot.handlePBs();
-
+        bot.handlePBs();
         ThisThread::sleep_for(100);
-        //wait_us(100000);
-
     }
     return EXIT_SUCCESS;
-
-}
+} //EO main()
 
 /*!
     \fn void threadHeartbeat(void)

@@ -17,7 +17,7 @@ BalanceBot::BalanceBot(I2C* i2c) :
     botPB(BOT_PB),
     //!< Registers
     setPoint(BALANCE_POINT),
-    stepMode(HALF_STEP),
+    stepMode(FULL_STEP),
     //!< Other
     pid(0.7, 1, 1) // Needs tuning and #define statements
     {
@@ -25,8 +25,8 @@ BalanceBot::BalanceBot(I2C* i2c) :
     mpu.setDLPF(DLPF_CFG_6); //!< Digital Low Pass Filter
     //!< Start robot/threads or run hardware tests
     
-    //runAllTests();
-    balanceThread.start(callback(this, &BalanceBot::balanceThreadRoutine));
+    runAllTests();
+    //balanceThread.start(callback(this, &BalanceBot::balanceThreadRoutine));
 
     printf("\n\r~~~ BalanceBot online ~~~\n\n\r");
 }
@@ -37,12 +37,6 @@ BalanceBot::BalanceBot(I2C* i2c) :
 */
 void BalanceBot::step(const uint16_t count) {
     for(int i = 0; i < count; i++) {
-        // leftWheel.setStep(HIGH);
-        // rightWheel.setStep(HIGH);
-        //ThisThread::sleep_for(1);
-        // leftWheel.setStep(LOW);
-        // rightWheel.setStep(LOW);
-        //ThisThread::sleep_for(1);
         bothWheels = STEP_MASK_ON;
         wait_us(STEP_DELAY);
         bothWheels = STEP_MASK_OFF;
@@ -99,8 +93,13 @@ void BalanceBot::decStepMode() {
  */
 double BalanceBot::getTilt() {
     int16_t xAcceleration, yAcceleration, zAcceleration;
-
     mpu.getAccel(&xAcceleration, &yAcceleration, &zAcceleration);
+
+    int16_t gyroX, gyroY, gyroZ;
+    mpu.getGyro(&gyroX, &gyroY, &gyroZ); 
+    int16_t netAccel = xAcceleration - gyroY * 0.2; //!< Compensating for moment about y axis (d = 0.2 meters)
+    
+    double azimuth = atan2( netAccel, zAcceleration );
 
     return atan2( xAcceleration, zAcceleration );
 }
@@ -120,8 +119,8 @@ void BalanceBot::handlePBs() {
         while(topPB == 0){
             //!< Wait for release of button
         }
-        double temperature = mpu.getTemp();
-        printf("Current Temperature %0.1f degrees celcius\n\r", temperature);         
+        //double temperature = mpu.getTemp();
+        printf("Current Temperature %0.1f degrees celcius\n\r", mpu.getTemp());         
     }
     if(botPB == 0 ) {
         while(botPB == 0){
@@ -140,7 +139,8 @@ void BalanceBot::handlePBs() {
  */
 void BalanceBot::runMotors(double azimuth) {
     //!< Set motor direction
-    if(azimuth < setPoint) {
+    azimuth -= setPoint;
+    if(azimuth < 0.0) {
         setDirection(FORWARD);
         azimuth *= -1.0;
     } else {
@@ -148,11 +148,11 @@ void BalanceBot::runMotors(double azimuth) {
     }
     //!< Set motor resolution based on tilt
     if(azimuth < 2.0) {
-        wait_us(1000);
-    } else if(azimuth < 5.0 && stepMode != SIXTEENTH_STEP) {
+        wait_us(100000);
+    } else if(azimuth < 10.0 && stepMode != SIXTEENTH_STEP) {
         setStepMode(SIXTEENTH_STEP);
         stepMode = SIXTEENTH_STEP;
-    } else if(azimuth < 15.0 && stepMode != QUARTER_STEP) {
+    } else if(azimuth < 25.0 && stepMode != QUARTER_STEP) {
         setStepMode(QUARTER_STEP);
         stepMode = QUARTER_STEP;
     } else if (stepMode != FULL_STEP) {
@@ -160,7 +160,7 @@ void BalanceBot::runMotors(double azimuth) {
         stepMode = FULL_STEP;
     }
 
-    uint8_t steps = uint8_t((azimuth*0.95/DEGREES_PER_STEP)*stepMode);
+    uint8_t steps = uint8_t((azimuth*0.5/DEGREES_PER_STEP)*stepMode);
     
     //printf("Steps: %i\n\r", steps);
     step(steps);
@@ -176,21 +176,12 @@ void BalanceBot::runMotors(double azimuth) {
 void BalanceBot::balanceThreadRoutine() {
     while(true) {
         double mpuReading = getTiltDegrees();
-        printf("Raw azimuth: %0.3f\n\r", mpuReading);
+        //printf("Raw azimuth: %0.3f\n\r", mpuReading);
         //printf("%f\n\r", mpuReading);
         runMotors(mpuReading);
-        //step(200);
         //ThisThread::sleep_for(1000);
     }
 
     // azimuth = pid.controlStep(azimuth, BALANCE_POINT);
-    // int16_t gyroX, gyroY, gyroZ;
-    // mpu.getGyro(&gyroX, &gyroY, &gyroZ); 
-    // int16_t accelX, accelY, accelZ;
-    // mpu.getAccel(&accelX, &accelY, &accelZ); 
-    // //printf("Gyro X: %i\tGyro Y: %i\tGyro Z: %i\n\r", gyroX, gyroY, gyroZ);
-    // int16_t netAccel = accelX - gyroY * 0.2; //!< Compensating for moment about y axis (d = 0.2 meters)
-    
-    // double azimuth = atan2( netAccel, accelZ );
-    // printf("Azimuth: %0.2f degrees\n\r", azimuth * 180 / M_PI);
+
 }
