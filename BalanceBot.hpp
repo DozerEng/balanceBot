@@ -18,7 +18,6 @@
 #include "A4988.hpp"
 #include "MPU6050.hpp"
 #include "PID_Controller.hpp"
-
 #include <cmath>
 #ifndef M_PI
     //M_PI unavailable by default on mbed
@@ -33,35 +32,43 @@
  /*!
     \def STEP_MASK
     Match L_STEP and R_STEP pins. Both step pins MUST be on the same port for synchronous wheel movement.
-    p19 => P1.30 (Port1.30)
-    p20 => P1.31 (Port1.31)
-    Mask: 0xC0000000 == 0b11000000000000000000000000000000
+    p15 => P0.23 
+    p10 => P0.1 
+    Mask: 0x00800002 or 0b00000000100000000000000000000010
     
  */
-#define STEP_MASK_ON    0xC0000000
-#define STEP_MASK_OFF   0
+#define STEP_MASK   0x00800002
+#define MOTOR_PORT  Port0
+//#define STEP_MASK_OFF   0
 //!< Left Wheel Pins
-#define L_STEP  p19
-#define L_DIR   p17
-#define L_MS1   p14
-#define L_MS2   p15
+#define L_STEP  p15
+#define L_DIR   p14
+#define L_MS1   p18
+#define L_MS2   p17
 #define L_MS3   p16
 //!< Right Wheel Pins
-#define R_STEP  p20
-#define R_DIR   p18
-#define R_MS1   p11
+#define R_STEP  p10
+#define R_DIR   p9
+#define R_MS1   p13
 #define R_MS2   p12
-#define R_MS3   p13
+#define R_MS3   p11
 //!< Pushbuttons
 #define TOP_PB  p5
 #define BOT_PB  p6
+#define LIMIT_SWITCH  p7
+
 
 /*! 
     Constants
  */
 #define ROBOT_ON        true
 #define ROBOT_OFF       false
-#define BALANCE_POINT   -6.0 //!< Tilt angle for balancing with no movement
+#define BALANCE_POINT   2.2 //!< Default balancing angle  in radians
+
+#define LEFT_TURN       20  // Fowward/Reverse are 1/0 respectively
+#define RIGHT_TURN      21
+
+#define RADIANS_TO_DEGREES  57.2957795130823208767981548
 
 /*!
     Data Types
@@ -75,33 +82,40 @@
  */
 class BalanceBot {
 private: 
+    FILE* bbOut = stdout; //For logging data
+    FILE* bbErr = stderr; //For logging errors
+
     //!< IMU
     MPU6050 mpu;
+    
+    //!< PID Controller
     PID_Controller pid;
+    double setPoint = BALANCE_POINT; // Approximate balance point in degrees, should be set by a calibration function
+    double kc = 1; 
+    double ti = 1; 
+    double td = 1; 
     
     //!< Motors
     PortOut bothWheels; //!< Step pins for both wheels for synchronized stepping
     A4988 leftWheel;
     A4988 rightWheel;
+    uint8_t stepMode;
+
     //!< Onboard Pushbuttons
     DigitalIn topPB;
     DigitalIn botPB;
 
     /*!
         Measures azimuth tilt angle of robot using MPU6050 and PID_Controller
-        \sa balanceThreadRoutine
+        \sa controlSystem()
      */
-    Thread balanceThread;
+    Thread controlSystemThread;
 
-    //!< Registers
-    uint8_t stepMode;
-    double setPoint;
-    
     /*!
         Private methods
     */
-    void balanceThreadRoutine(void);
-    void runMotors(double azimuth);
+    void controlSystem(void);
+    void plant(double controlVariable);
          
 public:
     BalanceBot (I2C* i2c);
@@ -126,6 +140,7 @@ public:
      */
     void runAllTests(void);
     void testWheels(void);
+    void testWheelsFast(void);
 
 };
 

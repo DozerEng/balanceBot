@@ -18,7 +18,8 @@
 
 */
 void BalanceBot::runAllTests() {
-    testWheels();
+    // testWheels();
+    testWheelsFast();
 }
 /*!
     \fn testWheels()
@@ -57,21 +58,61 @@ void BalanceBot::testWheels() {
         ThisThread::sleep_for(500);
     }
     //!< Step 4 part 1
-    leftWheel.setDirMode(FORWARD);
-    rightWheel.setDirMode(REVERSE);
-    setStepMode(SIXTEENTH_STEP);
-    for(int i = 0; i < 5; i++) {
+    setDirection(LEFT_TURN);
+    setStepMode(FULL_STEP);
+    for(int i = 0; i < 6; i++) {
+        printf("Step 4a part %i: Steps: %i\n\r", i, STEPS_PER_REVOLUTION*stepMode);
         step(STEPS_PER_REVOLUTION*stepMode);
-        decStepMode();
+        incStepMode();
         ThisThread::sleep_for(500);
     }    
     //!< Step 4 part 2
-    leftWheel.setDirMode(REVERSE);
-    rightWheel.setDirMode(FORWARD);
+    setDirection(RIGHT_TURN);
     setStepMode(SIXTEENTH_STEP);
     for(int i = 0; i < 5; i++) {
+        printf("Step 4b part %i: Steps: %i\n\r", i, STEPS_PER_REVOLUTION*stepMode);
         step(STEPS_PER_REVOLUTION*stepMode);
         decStepMode();
         ThisThread::sleep_for(500);
+    }
+}
+
+/*!
+    \fn testWheelsFast()
+
+    Implementation of testWheels() which has 200 steps per step mode while testWheels() has 200*stepMode steps per step mode.
+
+ */
+void BalanceBot::testWheelsFast() {
+    //!< Step 1 and 2
+    setDirection(FORWARD);
+    setStepMode(FULL_STEP);
+    for(int i = 0; i < 6; i++) {
+        step(STEPS_PER_REVOLUTION);
+        incStepMode();
+        ThisThread::sleep_for(100);
+    }
+    //!< Step 3
+    setDirection(REVERSE);
+    for(int i = 0; i < 6; i++) {
+        step(STEPS_PER_REVOLUTION);
+        decStepMode();
+        ThisThread::sleep_for(100);
+    }
+    //!< Step 4 part 1
+    setDirection(LEFT_TURN);
+    setStepMode(FULL_STEP);
+    for(int i = 0; i < 6; i++) {
+        step(STEPS_PER_REVOLUTION);
+        incStepMode();
+        ThisThread::sleep_for(100);
+    }    
+    //!< Step 4 part 2
+    setDirection(RIGHT_TURN);
+    setStepMode(SIXTEENTH_STEP);
+    for(int i = 0; i < 5; i++) {
+        step(STEPS_PER_REVOLUTION);
+        decStepMode();
+        ThisThread::sleep_for(100);
     }
 }

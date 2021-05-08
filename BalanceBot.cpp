@@ -10,25 +10,29 @@
 BalanceBot::BalanceBot(I2C* i2c) : 
     //!< Hardware
     mpu(i2c),
-    bothWheels(Port1, STEP_MASK_ON),
+    bothWheels(MOTOR_PORT, STEP_MASK),
     leftWheel(L_STEP, L_DIR, L_MS1, L_MS2, L_MS3),
     rightWheel(R_STEP, R_DIR, R_MS1, R_MS2, R_MS3),
     topPB(TOP_PB),
     botPB(BOT_PB),
+    pid(KC, TI, TD), // Needs tuning and #define statements
     //!< Registers
-    setPoint(BALANCE_POINT),
-    stepMode(FULL_STEP),
-    //!< Other
-    pid(0.7, 1, 1) // Needs tuning and #define statements
+    stepMode(FULL_STEP)
     {
+    /*!
+        Initalize modes of the robot
+     */
     setStepMode(stepMode);
-    mpu.setDLPF(DLPF_CFG_6); //!< Digital Low Pass Filter
-    //!< Start robot/threads or run hardware tests
-    
-    runAllTests();
-    //balanceThread.start(callback(this, &BalanceBot::balanceThreadRoutine));
+    setDirection(FORWARD); 
+    mpu.setDLPF(DLPF_CFG_5); //!< Digital Low Pass Filter
 
-    printf("\n\r~~~ BalanceBot online ~~~\n\n\r");
+    /*!
+        Start robot/threads or run hardware tests
+     */
+    //runAllTests();
+    controlSystemThread.start(callback(this, &BalanceBot::controlSystem));
+
+    fprintf(bbOut, "\n\r~~~ BalanceBot online ~~~\n\n\r");
 }
 
 /*!
@@ -37,9 +41,9 @@ BalanceBot::BalanceBot(I2C* i2c) :
 */
 void BalanceBot::step(const uint16_t count) {
     for(int i = 0; i < count; i++) {
-        bothWheels = STEP_MASK_ON;
+        bothWheels = bothWheels | STEP_MASK;
         wait_us(STEP_DELAY);
-        bothWheels = STEP_MASK_OFF;
+        bothWheels = bothWheels & ~STEP_MASK;
         wait_us(STEP_DELAY);
     }
 }
@@ -54,8 +58,28 @@ void BalanceBot::setDirection() {
 }
 
 void BalanceBot::setDirection(const uint8_t dir) {
-    leftWheel.setDirMode(dir);
-    rightWheel.setDirMode(dir);
+    switch (dir) {
+    // Configuration when right wheel is forward by default and left wheel is moving in reverse
+        case FORWARD: 
+            leftWheel.setDirMode(REVERSE);
+            rightWheel.setDirMode(FORWARD);
+            break;
+        case REVERSE: 
+            leftWheel.setDirMode(FORWARD);
+            rightWheel.setDirMode(REVERSE);
+            break;
+        case RIGHT_TURN: 
+            leftWheel.setDirMode(REVERSE);
+            rightWheel.setDirMode(REVERSE);
+            break;
+        case LEFT_TURN: 
+            leftWheel.setDirMode(FORWARD);
+            rightWheel.setDirMode(FORWARD);
+            break;
+        default:
+            fprintf(bbErr, "BalanceBot::setDirection -> Invalid direction value passed");
+            break;
+    }    
 }
 /*!
     \fn setStepMode()
@@ -74,7 +98,7 @@ void BalanceBot::setStepMode(const uint8_t mode) {
 void BalanceBot::incStepMode() {
     leftWheel.incStepMode();
     rightWheel.incStepMode();
-    stepMode = leftWheel.getStepMode();
+    stepMode = rightWheel.getStepMode();
 }
 /*!
     \fn decStepMode()
@@ -82,7 +106,7 @@ void BalanceBot::incStepMode() {
 void BalanceBot::decStepMode() {
     leftWheel.decStepMode();
     rightWheel.decStepMode();
-    stepMode = leftWheel.getStepMode();
+    stepMode = rightWheel.getStepMode();
 }
 /*!
     \fn getTilt()
@@ -94,21 +118,21 @@ void BalanceBot::decStepMode() {
 double BalanceBot::getTilt() {
     int16_t xAcceleration, yAcceleration, zAcceleration;
     mpu.getAccel(&xAcceleration, &yAcceleration, &zAcceleration);
+    //fprintf(bbOut, "X acceleration: %i  Y acceleration: %i Z acceleration: %i\n\r", xAcceleration, yAcceleration,zAcceleration);
 
-    int16_t gyroX, gyroY, gyroZ;
-    mpu.getGyro(&gyroX, &gyroY, &gyroZ); 
-    int16_t netAccel = xAcceleration - gyroY * 0.2; //!< Compensating for moment about y axis (d = 0.2 meters)
+    // int16_t gyroX, gyroY, gyroZ;
+    // mpu.getGyro(&gyroX, &gyroY, &gyroZ); 
+   
+    //sdouble azimuth = atan2( -zAcceleration, xAcceleration );
     
-    double azimuth = atan2( netAccel, zAcceleration );
-
-    return atan2( xAcceleration, zAcceleration );
+    return atan2( -zAcceleration, xAcceleration );//
 }
 /*!
     \fn getTiltDegrees()
     \sa getTilt()
  */
 double BalanceBot::getTiltDegrees() {
-    return getTilt() * 180.0 / M_PI;
+    return getTilt() * RADIANS_TO_DEGREES;
 }
 /*!
     \fn handlePBs()
@@ -133,20 +157,14 @@ void BalanceBot::handlePBs() {
 }
 
 /*!
-    \fn runMotors()
+    \fn plant()
     Thread for handing movement of the robots wheels
     \param azimuth tilt angle of robot in degrees
  */
-void BalanceBot::runMotors(double azimuth) {
-    //!< Set motor direction
-    azimuth -= setPoint;
-    if(azimuth < 0.0) {
-        setDirection(FORWARD);
-        azimuth *= -1.0;
-    } else {
-        setDirection(REVERSE);
-    }
+void BalanceBot::plant(double controlVariable) {
+
     //!< Set motor resolution based on tilt
+    /*
     if(azimuth < 2.0) {
         wait_us(100000);
     } else if(azimuth < 10.0 && stepMode != SIXTEENTH_STEP) {
@@ -159,8 +177,9 @@ void BalanceBot::runMotors(double azimuth) {
         setStepMode(FULL_STEP);
         stepMode = FULL_STEP;
     }
+    */
 
-    uint8_t steps = uint8_t((azimuth*0.5/DEGREES_PER_STEP)*stepMode);
+    uint8_t steps = uint8_t((controlVariable*0.5/DEGREES_PER_STEP)*stepMode);
     
     //printf("Steps: %i\n\r", steps);
     step(steps);
@@ -168,20 +187,32 @@ void BalanceBot::runMotors(double azimuth) {
 
 
 /*!
-    \fn balanceThreadRoutine
+    \fn controlSystem
     Thread for finding the azimuth tilt of robot and saving it in private variable "azimuth"
         - Hardware: MPU6050
         - Controller: PID_Controller
  */
-void BalanceBot::balanceThreadRoutine() {
+void BalanceBot::controlSystem() {
+    pid.start();
     while(true) {
+        // 1) Calculate tilt/error from MPU6050 (Process variable)
         double mpuReading = getTiltDegrees();
-        //printf("Raw azimuth: %0.3f\n\r", mpuReading);
-        //printf("%f\n\r", mpuReading);
-        runMotors(mpuReading);
-        //ThisThread::sleep_for(1000);
+        double error = (setPoint - mpuReading);
+        fprintf(bbOut, "Error in degrees: %0.2f\n\r", error );
+        fprintf(bbOut, "Azimuth in degrees: %0.2f\n\r", mpuReading );
+
+        // 2) Setpoint and plant output get passed to PID controller
+        double controlVariable = pid.controlStep(mpuReading, setPoint);
+        error = controlVariable - setPoint;
+        fprintf(bbOut, "Control Variable: %0.2f\n\r", error );
+        ThisThread::sleep_for(500);  
+
+        // 3) Control variable passed to plant which moves the motors
+        //plant(controlVariable);
+
     }
-
-    // azimuth = pid.controlStep(azimuth, BALANCE_POINT);
-
+    pid.stop();
+    fprintf(bbOut, "Control system shutting down....\n\r");
+    ThisThread::sleep_for(1500);
+    fprintf(bbOut, "Control system successfully shut down\n\r");
 }

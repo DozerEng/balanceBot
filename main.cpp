@@ -55,12 +55,20 @@ void threadHeartbeat(void);
 
     \return Exit success/failure
  */
+//!< LEDs
+// #define RGB_R P1_0 //need to check which LED to which pin
+// #define RGB_G P1_1
+// #define RGB_B P1_10
+// DigitalOut LED_R(RGB_R);
+// DigitalOut LED_G(RGB_G);
+// DigitalOut LED_B(RGB_G);
 
 
+// Main ********************************************************************/
 int main()
 {
     
-    //!< Subroutine Calls
+    //!< Subroutine Calls 
     ledThread.start(threadHeartbeat);
 
     printf("\n\rStarting MBED...\n\r");
@@ -70,13 +78,21 @@ int main()
 
     BalanceBot bot(&i2c);
 
+
+
     //!< Main thread
     while (GO_TIME) {
-        bot.handlePBs();
-        ThisThread::sleep_for(100);
+        //bot.handlePBs();
+
+        ThisThread::sleep_for(500);
+
     }
     return EXIT_SUCCESS;
-} //EO main()
+} //EO main() **************************************************************/
+
+
+
+
 
 /*!
     \fn void threadHeartbeat(void)

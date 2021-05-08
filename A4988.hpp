@@ -82,7 +82,7 @@ public:
         \param newMode set mode for Microstepping
     */
     void setStepMode();
-    void setStepMode(const uint8_t);
+    void setStepMode(const uint8_t newMode);
     void incStepMode();
     void decStepMode();
     /*!
