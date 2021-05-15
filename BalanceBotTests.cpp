@@ -3,7 +3,7 @@
  * \author Michael Pillon
  * 
  * Functions to run to test parts of the robot
- *
+ *      - MPU6050 runs debug messages in console when initialized
  */
 
 #include "BalanceBot.hpp"

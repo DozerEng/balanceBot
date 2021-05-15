@@ -32,9 +32,11 @@
 
 #define FORWARD     0
 #define REVERSE     1
+#define LEFT_TURN   2
+#define RIGHT_TURN  3
+
 #define HIGH        1
 #define LOW         0
-
 
 /*!
     Data Types
@@ -57,7 +59,6 @@ private:
 
    int microStepMode;
    char currentDirection;
-
 
 public: 
     /*!

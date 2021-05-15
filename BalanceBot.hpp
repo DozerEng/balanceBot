@@ -53,9 +53,17 @@
 #define R_MS2   p12
 #define R_MS3   p11
 //!< Pushbuttons
-#define TOP_PB  p5
-#define BOT_PB  p6
-#define LIMIT_SWITCH  p7
+#define PB_MASK   0x00800007
+#define PB_PORT  Port2
+#define TOP_PB  p25
+#define BOT_PB  p26
+#define LIMIT_SWITCH  p24
+//!< RGB LED
+#define RGB_MASK 0x00000038
+#define RGB_PORT  Port2
+#define RGB_R p23
+#define RGB_G p22
+#define RGB_B p21
 
 
 /*! 
@@ -65,25 +73,19 @@
 #define ROBOT_OFF       false
 #define BALANCE_POINT   2.2 //!< Default balancing angle  in radians
 
-#define LEFT_TURN       20  // Fowward/Reverse are 1/0 respectively
-#define RIGHT_TURN      21
-
 #define RADIANS_TO_DEGREES  57.2957795130823208767981548
 
+#define KC 0.7
+#define TI 1
+#define TD 1
+
 /*!
-    Data Types
- */
-
-
-/*!
-    BalanceBot 
-
-    2 Wheel self balancing robot
+    BalanceBot  - 2 Wheel self balancing robot
  */
 class BalanceBot {
 private: 
-    FILE* bbOut = stdout; //For logging data
-    FILE* bbErr = stderr; //For logging errors
+    FILE* bbOut;// = stdout; //For logging data
+    FILE* bbErr;// = stderr; //For logging errors
 
     //!< IMU
     MPU6050 mpu;
@@ -91,9 +93,9 @@ private:
     //!< PID Controller
     PID_Controller pid;
     double setPoint = BALANCE_POINT; // Approximate balance point in degrees, should be set by a calibration function
-    double kc = 1; 
-    double ti = 1; 
-    double td = 1; 
+    double kc = KC; 
+    double ti = TI; 
+    double td = TD; 
     
     //!< Motors
     PortOut bothWheels; //!< Step pins for both wheels for synchronized stepping
@@ -104,9 +106,16 @@ private:
     //!< Onboard Pushbuttons
     DigitalIn topPB;
     DigitalIn botPB;
+    DigitalIn limSW;
+    PortIn pbs;
+    //!< RGB LED
+    DigitalOut rgb_r;
+    DigitalOut rgb_g;
+    DigitalOut rgb_b;
+    PortOut rgb;
 
-    /*!
-        Measures azimuth tilt angle of robot using MPU6050 and PID_Controller
+    /*! 
+        Thread for operating control system
         \sa controlSystem()
      */
     Thread controlSystemThread;
@@ -115,7 +124,7 @@ private:
         Private methods
     */
     void controlSystem(void);
-    void plant(double controlVariable);
+    void plant(const double controlVariable);
          
 public:
     BalanceBot (I2C* i2c);
@@ -136,7 +145,7 @@ public:
 
     /*!
         Test functions
-        These functions are all in BalanceBotTests.cpp and test general functionality of the robot and relevant methods.
+        -   These functions are all in BalanceBotTests.cpp and test general functionality of the robot and relevant methods.
      */
     void runAllTests(void);
     void testWheels(void);

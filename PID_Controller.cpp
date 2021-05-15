@@ -10,13 +10,19 @@
 #include "PID_Controller.hpp"
 
 // Constructor 
-PID_Controller::PID_Controller (const double propGain, const double integralGain, const double derivativeGain) : 
-        kc(propGain),
-        ti(integralGain),
-        td(derivativeGain) { };
+PID_Controller::PID_Controller (const double propGain, const double integralGain, const double derivativeGain, FILE *printPID) : 
+    kc(propGain),
+    ti(integralGain),
+    td(derivativeGain) {
+        pidOut = printPID;
+};
 
 // Start PID - Initializes starts the timer
 void PID_Controller::start() {
+    timer.start();
+}
+// Restart PID - Initializes starts the timer
+void PID_Controller::restart() {
     deltaT = 0.0;
     timer.reset();
     timer.start();
@@ -44,6 +50,9 @@ double PID_Controller::controlStep (const double plantOutput, double setpoint) {
     //!< Store required values for next function call
     previousQ = currentQ; 
     previousOutput = plantOutput;
+
+    fprintf(stdout, "%f %f %f %f\n\r", deltaT, plantOutput, currentError, plantInput);
+
     timer.reset();
     return plantInput;
 }

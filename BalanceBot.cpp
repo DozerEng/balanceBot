@@ -6,25 +6,36 @@
  */
 
 #include "BalanceBot.hpp"
-
+//!< Constructor
 BalanceBot::BalanceBot(I2C* i2c) : 
-    //!< Hardware
     mpu(i2c),
+    pid(KC, TI, TD, bbOut),
     bothWheels(MOTOR_PORT, STEP_MASK),
     leftWheel(L_STEP, L_DIR, L_MS1, L_MS2, L_MS3),
     rightWheel(R_STEP, R_DIR, R_MS1, R_MS2, R_MS3),
+    stepMode(FULL_STEP),
+    // Inputs
     topPB(TOP_PB),
     botPB(BOT_PB),
-    pid(KC, TI, TD), // Needs tuning and #define statements
-    //!< Registers
-    stepMode(FULL_STEP)
+    limSW(LIMIT_SWITCH),
+    pbs(PB_PORT, PB_MASK),
+    // Outputs
+    rgb_r(RGB_R),
+    rgb_g(RGB_G),
+    rgb_b(RGB_B),
+    rgb(RGB_PORT, RGB_MASK),
+    bbOut(stdout), // stdout, "./fileName.txt", "a"
+    bbErr(stderr) // stderr, 
     {
+
+
     /*!
         Initalize modes of the robot
      */
+    
     setStepMode(stepMode);
     setDirection(FORWARD); 
-    mpu.setDLPF(DLPF_CFG_5); //!< Digital Low Pass Filter
+    mpu.setDLPF(DLPF_CFG_2); //!< Digital Low Pass Filter
 
     /*!
         Start robot/threads or run hardware tests
@@ -144,7 +155,7 @@ void BalanceBot::handlePBs() {
             //!< Wait for release of button
         }
         //double temperature = mpu.getTemp();
-        printf("Current Temperature %0.1f degrees celcius\n\r", mpu.getTemp());         
+        fprintf(bbOut, "Current Temperature %0.1f degrees celcius\n\r", mpu.getTemp());         
     }
     if(botPB == 0 ) {
         while(botPB == 0){
@@ -181,7 +192,7 @@ void BalanceBot::plant(double controlVariable) {
 
     uint8_t steps = uint8_t((controlVariable*0.5/DEGREES_PER_STEP)*stepMode);
     
-    //printf("Steps: %i\n\r", steps);
+    //fprintf(bbOut, "Steps: %i\n\r", steps);
     step(steps);
 }
 
@@ -193,19 +204,22 @@ void BalanceBot::plant(double controlVariable) {
         - Controller: PID_Controller
  */
 void BalanceBot::controlSystem() {
+    fprintf(bbOut, "Tilt \terror \tcontrolVariable\n\r" );
     pid.start();
     while(true) {
+        uint32_t inputReading = pbs;
+        
+        uint32_t outputValue = inputReading << 3;
+        rgb = ~outputValue;
+        
+        //ThisThread::sleep_for(100);
+
         // 1) Calculate tilt/error from MPU6050 (Process variable)
         double mpuReading = getTiltDegrees();
-        double error = (setPoint - mpuReading);
-        fprintf(bbOut, "Error in degrees: %0.2f\n\r", error );
-        fprintf(bbOut, "Azimuth in degrees: %0.2f\n\r", mpuReading );
 
         // 2) Setpoint and plant output get passed to PID controller
         double controlVariable = pid.controlStep(mpuReading, setPoint);
-        error = controlVariable - setPoint;
-        fprintf(bbOut, "Control Variable: %0.2f\n\r", error );
-        ThisThread::sleep_for(500);  
+        // ThisThread::sleep_for(50);  
 
         // 3) Control variable passed to plant which moves the motors
         //plant(controlVariable);
