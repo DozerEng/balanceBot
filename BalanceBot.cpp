@@ -35,7 +35,7 @@ BalanceBot::BalanceBot(I2C* i2c) :
     
     setStepMode(stepMode);
     setDirection(FORWARD); 
-    mpu.setDLPF(DLPF_CFG_2); //!< Digital Low Pass Filter
+    mpu.setDLPF(DLPF_CFG_6); //!< Digital Low Pass Filter
 
     /*!
         Start robot/threads or run hardware tests

@@ -71,13 +71,13 @@
  */
 #define ROBOT_ON        true
 #define ROBOT_OFF       false
-#define BALANCE_POINT   2.2 //!< Default balancing angle  in radians
+#define BALANCE_POINT   3 //!< Default balancing angle  in degrees
 
 #define RADIANS_TO_DEGREES  57.2957795130823208767981548
 
-#define KC 0.7
-#define TI 1
-#define TD 1
+#define KC 1.0
+#define TI 0.0
+#define TD 0.0
 
 /*!
     BalanceBot  - 2 Wheel self balancing robot

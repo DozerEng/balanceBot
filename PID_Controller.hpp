@@ -18,11 +18,10 @@
 
 class PID_Controller {
 private:
-    double kc;  // The proportional gain
-    double ti;    // Integral Term
-    double td;    // Derivative Term
-    double previousOutput = 0.0;  //previous output from plant
-    double previousQ = 0.0; //Previous q value for integral sum calculation
+    double kp, ki, kd; 
+    double previousOutput = 0.0;  
+    double previousInput = 0.0;
+    double previousIntegral = 0.0;
 
     Timer timer;
     double deltaT = 0;

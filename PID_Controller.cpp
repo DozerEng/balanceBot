@@ -11,9 +11,9 @@
 
 // Constructor 
 PID_Controller::PID_Controller (const double propGain, const double integralGain, const double derivativeGain, FILE *printPID) : 
-    kc(propGain),
-    ti(integralGain),
-    td(derivativeGain) {
+    kp(propGain),
+    ki(integralGain),
+    kd(derivativeGain) {
         pidOut = printPID;
 };
 
@@ -34,25 +34,26 @@ void PID_Controller::stop() {
 }
 
 // Implementation of controlStep()
-double PID_Controller::controlStep (const double plantOutput, double setpoint) {
+double PID_Controller::controlStep (const double measurement, double setpoint) {
     deltaT = timer.read();
+    timer.reset();
     
-    double currentError = (setpoint - plantOutput);
+    double error = (setpoint - measurement);
     //!< Numerical approximation for integradl:
-    double currentQ = 0.9 * previousQ + 0.1 * currentError;
+    double integral = 0.9 * previousIntegral + 0.1 * error;
     
 
     //!< Calculate deltaT
 
     //!< Calculate new input
-    double plantInput = setpoint + kc * (currentError + ( deltaT / ti) * currentQ - ( td / deltaT ) * ( plantOutput - previousOutput ));
+    double controlVariable = setpoint + kp * error + deltaT * ki * integral - ( kd / deltaT ) * ( measurement - previousOutput );
 
     //!< Store required values for next function call
-    previousQ = currentQ; 
-    previousOutput = plantOutput;
+    previousIntegral = integral; 
+    previousOutput = measurement;
 
-    fprintf(stdout, "%f %f %f %f\n\r", deltaT, plantOutput, currentError, plantInput);
+    fprintf(stdout, "%f %f %f %f\n\r", deltaT, measurement, error, controlVariable);
 
-    timer.reset();
-    return plantInput;
+    
+    return controlVariable;
 }
