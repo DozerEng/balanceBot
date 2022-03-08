@@ -105,8 +105,10 @@ int main()
  */
 void threadHeartbeat(void)
 {
+
     while(true) {
         Helper::knightRider(&led1, &led2, &led3, &led4);
         ThisThread::sleep_for(BLINKING_RATE_MS);
     }
+
 }

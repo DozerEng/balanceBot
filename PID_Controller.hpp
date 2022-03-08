@@ -19,12 +19,11 @@
 class PID_Controller {
 private:
     double kp, ki, kd; 
-    double previousOutput = 0.0;  
-    double previousInput = 0.0;
-    double previousIntegral = 0.0;
+    double previousError = 0.0;
+    double previousOutput = 0.0; 
+    double integralSum = 0.0;
 
-    Timer timer;
-    double deltaT = 0;
+    double dt = 0;
 
     FILE *pidOut;
     
@@ -35,19 +34,11 @@ public:
      * \param propGain The proportional gain
      * \param integralGain The integral gain
      * \param derivativeGain The derivative gain
+     * \param deltaT Constant period in ms
      */
-    PID_Controller (const double propGain, const double integralGain, const double derivativeGain, FILE *printPID = stdout);
+    PID_Controller (const double kp, const double ki, const double kd, const double dt, FILE *printPID = stdout);
     
-    // Start PID - Initializes starts the timer
-    void start();
-    // Restart PID - Restarts timer counting value back to 0 while running or not.
-    void restart();
-    // Stop PID - Stops and resets PID timer
-    void stop();
-
-    
-    // Our promise to implement the function from the abstract base class
-    double controlStep (double plantOutput, double setpoint);
+    double controlStep (double input, double setpoint);
 };
 
 

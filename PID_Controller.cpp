@@ -9,51 +9,32 @@
 
 #include "PID_Controller.hpp"
 
+
 // Constructor 
-PID_Controller::PID_Controller (const double propGain, const double integralGain, const double derivativeGain, FILE *printPID) : 
-    kp(propGain),
-    ki(integralGain),
-    kd(derivativeGain) {
+PID_Controller::PID_Controller (const double kp, const double ki, const double kd, double dt, FILE *printPID) : 
+    kp(kp),
+    ki(ki),
+    kd(kd),
+    dt(dt) {
         pidOut = printPID;
 };
 
-// Start PID - Initializes starts the timer
-void PID_Controller::start() {
-    timer.start();
-}
-// Restart PID - Initializes starts the timer
-void PID_Controller::restart() {
-    deltaT = 0.0;
-    timer.reset();
-    timer.start();
-}
-// Stop PID - Stops and resets PID timer
-void PID_Controller::stop() {
-    timer.stop();
-    timer.reset();
-}
 
 // Implementation of controlStep()
-double PID_Controller::controlStep (const double measurement, double setpoint) {
-    deltaT = timer.read();
-    timer.reset();
-    
-    double error = (setpoint - measurement);
-    //!< Numerical approximation for integradl:
-    double integral = 0.9 * previousIntegral + 0.1 * error;
-    
+double PID_Controller::controlStep (const double input, double setpoint) {
 
-    //!< Calculate deltaT
-
+    double error = (setpoint - input);
+    integralSum += dt * error;
+    double derivative = ( input - previousError ) / dt;
+    
     //!< Calculate new input
-    double controlVariable = setpoint + kp * error + deltaT * ki * integral - ( kd / deltaT ) * ( measurement - previousOutput );
+    double controlVariable =  kp * error + ki * integralSum - kd * derivative; 
 
     //!< Store required values for next function call
-    previousIntegral = integral; 
-    previousOutput = measurement;
+    previousOutput = controlVariable;
+    previousError = input;
+    //fprintf(stdout, "dt:%f \tIMU:%f \te:%f \tcv:%f\n\r", deltaT, measurement, error, controlVariable);
+    fprintf(stdout, "%f %f %f %f\n\r", dt, input, error, controlVariable);
 
-    fprintf(stdout, "%f %f %f %f\n\r", deltaT, measurement, error, controlVariable);
-
-    
     return controlVariable;
 }

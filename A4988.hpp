@@ -15,7 +15,7 @@
 /*! 
     Constants
  */
-#define STEP_DELAY 1000     //!< DigitalOut delay in microseconds
+#define STEP_DELAY 1500     //!< DigitalOut delay in microseconds (Minimum 1000)
 #define DEGREES_PER_STEP        1.8 //<! For NEMA 17 Stepper Motor
 #define STEPS_PER_REVOLUTION    200 //!< # of FULL_STEP per full revolution
 

@@ -9,7 +9,7 @@
 //!< Constructor
 BalanceBot::BalanceBot(I2C* i2c) : 
     mpu(i2c),
-    pid(KC, TI, TD, bbOut),
+    pid(KP, KI, KD, DT, bbOut),
     bothWheels(MOTOR_PORT, STEP_MASK),
     leftWheel(L_STEP, L_DIR, L_MS1, L_MS2, L_MS3),
     rightWheel(R_STEP, R_DIR, R_MS1, R_MS2, R_MS3),
@@ -35,22 +35,30 @@ BalanceBot::BalanceBot(I2C* i2c) :
     
     setStepMode(stepMode);
     setDirection(FORWARD); 
-    mpu.setDLPF(DLPF_CFG_6); //!< Digital Low Pass Filter
+    mpu.setDLPF(DLPF_CFG_4); //!< Digital Low Pass Filter
 
     /*!
         Start robot/threads or run hardware tests
      */
-    //runAllTests();
-    controlSystemThread.start(callback(this, &BalanceBot::controlSystem));
-
+    runAllTests();
+    
+    buttonThread.start(callback(this, &BalanceBot::handlePBs));
+    buttonThread.set_priority(osPriorityHigh1);
+    /*
+    controllerThread.start(callback(this, &BalanceBot::controlSystem));
+    controllerThread.set_priority(osPriorityRealtime1);
+    
+    motorThread.start(callback(this, &BalanceBot::motorSystem));
+    motorThread.set_priority(osPriorityAboveNormal1);
+    */
     fprintf(bbOut, "\n\r~~~ BalanceBot online ~~~\n\n\r");
 }
 
 /*!
-    \fn step()
+    \fn steps()
     \param count Number of steps to rotate wheels, default to 1 step
 */
-void BalanceBot::step(const uint16_t count) {
+void BalanceBot::steps(const uint16_t count) {
     for(int i = 0; i < count; i++) {
         bothWheels = bothWheels | STEP_MASK;
         wait_us(STEP_DELAY);
@@ -58,6 +66,17 @@ void BalanceBot::step(const uint16_t count) {
         wait_us(STEP_DELAY);
     }
 }
+/*!
+    \fn step()
+    \param count Number of steps to rotate wheels, default to 1 step
+*/
+void BalanceBot::step() {
+    bothWheels = bothWheels | STEP_MASK;
+    wait_us(STEP_DELAY);
+    bothWheels = bothWheels & ~STEP_MASK;
+    wait_us(STEP_DELAY);
+}
+
 /*!
     \fn setDirection()
     Set direction of both wheels
@@ -74,18 +93,22 @@ void BalanceBot::setDirection(const uint8_t dir) {
         case FORWARD: 
             leftWheel.setDirMode(REVERSE);
             rightWheel.setDirMode(FORWARD);
+            directionMode = FORWARD;
             break;
         case REVERSE: 
             leftWheel.setDirMode(FORWARD);
             rightWheel.setDirMode(REVERSE);
+            directionMode = REVERSE;
             break;
         case RIGHT_TURN: 
             leftWheel.setDirMode(REVERSE);
             rightWheel.setDirMode(REVERSE);
+            directionMode = RIGHT_TURN;
             break;
         case LEFT_TURN: 
             leftWheel.setDirMode(FORWARD);
             rightWheel.setDirMode(FORWARD);
+            directionMode = LEFT_TURN;
             break;
         default:
             fprintf(bbErr, "BalanceBot::setDirection -> Invalid direction value passed");
@@ -150,50 +173,80 @@ double BalanceBot::getTiltDegrees() {
     Handle the 2 external push buttons
  */
 void BalanceBot::handlePBs() {
-    if(topPB == 0) {
-        while(topPB == 0){
-            //!< Wait for release of button
+    while(true) {
+        if(topPB == 0) {
+            while(topPB == 0){
+                //!< Wait for release of button
+            }
+            fprintf(bbOut, "Top PB pressed\n\r");
+            //double temperature = mpu.getTemp();
+            fprintf(bbOut, "Current Temperature %0.1f degrees celcius\n\r", mpu.getTemp());         
         }
-        //double temperature = mpu.getTemp();
-        fprintf(bbOut, "Current Temperature %0.1f degrees celcius\n\r", mpu.getTemp());         
+        if(limSW == 0 ) {
+            while(limSW == 0){
+                //!< Wait for release of button
+            }
+            /*
+                do stuff for bottom PB
+            */
+            fprintf(bbOut, "Limit switch pressed\n\r");
+        }
+        if(botPB == 0 ) {
+            while(botPB == 0){
+                //!< Wait for release of button
+            }
+            /*
+                do stuff for bottom PB
+            */
+            fprintf(bbOut, "Bottom PB pressed\n\r");
+        }  
+    
+    ThisThread::sleep_for(100);
     }
-    if(botPB == 0 ) {
-        while(botPB == 0){
-            //!< Wait for release of button
-        }
-        /*
-            do stuff for bottom PB
-         */
-    }  
 }
 
 /*!
     \fn plant()
     Thread for handing movement of the robots wheels
-    \param azimuth tilt angle of robot in degrees
  */
-void BalanceBot::plant(double controlVariable) {
+void BalanceBot::motorSystem() {
+    while(true) {
+        //!< Check for change in error value from controller
+        static double previousError;
+        double absError = abs(error);
 
-    //!< Set motor resolution based on tilt
-    /*
-    if(azimuth < 2.0) {
-        wait_us(100000);
-    } else if(azimuth < 10.0 && stepMode != SIXTEENTH_STEP) {
-        setStepMode(SIXTEENTH_STEP);
-        stepMode = SIXTEENTH_STEP;
-    } else if(azimuth < 25.0 && stepMode != QUARTER_STEP) {
-        setStepMode(QUARTER_STEP);
-        stepMode = QUARTER_STEP;
-    } else if (stepMode != FULL_STEP) {
-        setStepMode(FULL_STEP);
-        stepMode = FULL_STEP;
+        //!< Set motor resolution based on tilt
+        if(absError < 1.0) {
+            ThisThread::sleep_for(10); 
+        } else if((absError < 15.0) && (stepMode != SIXTEENTH_STEP)){
+            setStepMode(SIXTEENTH_STEP);
+        } else if((absError < 25.0) && (stepMode != QUARTER_STEP)) {
+            setStepMode(QUARTER_STEP);
+        } else if (stepMode != FULL_STEP) {
+            setStepMode(FULL_STEP);
+            
+        }
+        // Handle direction and step count
+        if(error != previousError) {
+            previousError = error;
+
+            if(error < 0) {
+                setDirection(FORWARD);
+            } else {
+                setDirection(REVERSE);
+            }
+
+             motorStepCount = uint16_t(absError*0.5/DEGREES_PER_STEP)*stepMode;
+        }
+
+
+        
+        //fprintf(bbOut, "Steps: %i error: %0.3f dirMode: %i\n\r", motorStepCount, error, directionMode);
+        steps(motorStepCount);
+        motorStepCount = 0;
+        // ThisThread::sleep_for(10);  
     }
-    */
 
-    uint8_t steps = uint8_t((controlVariable*0.5/DEGREES_PER_STEP)*stepMode);
-    
-    //fprintf(bbOut, "Steps: %i\n\r", steps);
-    step(steps);
 }
 
 
@@ -205,28 +258,24 @@ void BalanceBot::plant(double controlVariable) {
  */
 void BalanceBot::controlSystem() {
     fprintf(bbOut, "Tilt \terror \tcontrolVariable\n\r" );
-    pid.start();
+
     while(true) {
-        uint32_t inputReading = pbs;
-        
-        uint32_t outputValue = inputReading << 3;
-        rgb = ~outputValue;
-        
-        //ThisThread::sleep_for(100);
+        // Read push buttons
+        //uint32_t inputReading = pbs;
+        // uint32_t outputValue = inputReading << 3;
+        //rgb = ~outputValue;
 
         // 1) Calculate tilt/error from MPU6050 (Process variable)
         double mpuReading = getTiltDegrees();
 
         // 2) Setpoint and plant output get passed to PID controller
-        double controlVariable = pid.controlStep(mpuReading, setPoint);
-        // ThisThread::sleep_for(50);  
+        error = pid.controlStep(mpuReading, setPoint);
 
-        // 3) Control variable passed to plant which moves the motors
-        //plant(controlVariable);
+        ThisThread::sleep_for(DT_MS);  
 
     }
-    pid.stop();
+    
     fprintf(bbOut, "Control system shutting down....\n\r");
-    ThisThread::sleep_for(1500);
+    ThisThread::sleep_for(1500); 
     fprintf(bbOut, "Control system successfully shut down\n\r");
 }

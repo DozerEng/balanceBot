@@ -45,7 +45,7 @@ void BalanceBot::testWheels() {
     setStepMode(FULL_STEP);
     for(int i = 0; i < 6; i++) {
         printf("Step 1 part %i: Steps: %i\n\r", i, STEPS_PER_REVOLUTION*stepMode);
-        step(STEPS_PER_REVOLUTION*stepMode);
+        steps(STEPS_PER_REVOLUTION*stepMode);
         incStepMode();
         ThisThread::sleep_for(500);
     }
@@ -53,7 +53,7 @@ void BalanceBot::testWheels() {
     setDirection(REVERSE);
     for(int i = 0; i < 6; i++) {
         printf("Step 3 part %i: Steps: %i\n\r", i, STEPS_PER_REVOLUTION*stepMode);
-        step(STEPS_PER_REVOLUTION*stepMode);
+        steps(STEPS_PER_REVOLUTION*stepMode);
         decStepMode();
         ThisThread::sleep_for(500);
     }
@@ -62,7 +62,7 @@ void BalanceBot::testWheels() {
     setStepMode(FULL_STEP);
     for(int i = 0; i < 6; i++) {
         printf("Step 4a part %i: Steps: %i\n\r", i, STEPS_PER_REVOLUTION*stepMode);
-        step(STEPS_PER_REVOLUTION*stepMode);
+        steps(STEPS_PER_REVOLUTION*stepMode);
         incStepMode();
         ThisThread::sleep_for(500);
     }    
@@ -71,7 +71,7 @@ void BalanceBot::testWheels() {
     setStepMode(SIXTEENTH_STEP);
     for(int i = 0; i < 5; i++) {
         printf("Step 4b part %i: Steps: %i\n\r", i, STEPS_PER_REVOLUTION*stepMode);
-        step(STEPS_PER_REVOLUTION*stepMode);
+        steps(STEPS_PER_REVOLUTION*stepMode);
         decStepMode();
         ThisThread::sleep_for(500);
     }
@@ -88,14 +88,14 @@ void BalanceBot::testWheelsFast() {
     setDirection(FORWARD);
     setStepMode(FULL_STEP);
     for(int i = 0; i < 6; i++) {
-        step(STEPS_PER_REVOLUTION);
+        steps(STEPS_PER_REVOLUTION);
         incStepMode();
         ThisThread::sleep_for(100);
     }
     //!< Step 3
     setDirection(REVERSE);
     for(int i = 0; i < 6; i++) {
-        step(STEPS_PER_REVOLUTION);
+        steps(STEPS_PER_REVOLUTION);
         decStepMode();
         ThisThread::sleep_for(100);
     }
@@ -103,7 +103,7 @@ void BalanceBot::testWheelsFast() {
     setDirection(LEFT_TURN);
     setStepMode(FULL_STEP);
     for(int i = 0; i < 6; i++) {
-        step(STEPS_PER_REVOLUTION);
+        steps(STEPS_PER_REVOLUTION);
         incStepMode();
         ThisThread::sleep_for(100);
     }    
@@ -111,7 +111,7 @@ void BalanceBot::testWheelsFast() {
     setDirection(RIGHT_TURN);
     setStepMode(SIXTEENTH_STEP);
     for(int i = 0; i < 5; i++) {
-        step(STEPS_PER_REVOLUTION);
+        steps(STEPS_PER_REVOLUTION);
         decStepMode();
         ThisThread::sleep_for(100);
     }

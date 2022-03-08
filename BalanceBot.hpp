@@ -75,9 +75,11 @@
 
 #define RADIANS_TO_DEGREES  57.2957795130823208767981548
 
-#define KC 1.0
-#define TI 0.0
-#define TD 0.0
+#define KP 2.0
+#define KI 0.00
+#define KD 0.00
+#define DT 0.025 // Sensor sample rate in seconds
+#define DT_MS 25 // Sensor sample rate in milliseconds
 
 /*!
     BalanceBot  - 2 Wheel self balancing robot
@@ -87,21 +89,27 @@ private:
     FILE* bbOut;// = stdout; //For logging data
     FILE* bbErr;// = stderr; //For logging errors
 
+    Mutex outputLock;
+    double error = 0.0;
+    uint16_t motorStepCount = 0;
+
     //!< IMU
     MPU6050 mpu;
     
     //!< PID Controller
     PID_Controller pid;
     double setPoint = BALANCE_POINT; // Approximate balance point in degrees, should be set by a calibration function
-    double kc = KC; 
-    double ti = TI; 
-    double td = TD; 
+    double kp = KP; 
+    double ki = KI; 
+    double kd = KD; 
+    double dt = DT;
     
     //!< Motors
     PortOut bothWheels; //!< Step pins for both wheels for synchronized stepping
     A4988 leftWheel;
     A4988 rightWheel;
     uint8_t stepMode;
+    uint8_t directionMode;
 
     //!< Onboard Pushbuttons
     DigitalIn topPB;
@@ -118,18 +126,21 @@ private:
         Thread for operating control system
         \sa controlSystem()
      */
-    Thread controlSystemThread;
+    Thread motorThread;
+    Thread controllerThread;
+    Thread buttonThread;
 
     /*!
         Private methods
     */
     void controlSystem(void);
-    void plant(const double controlVariable);
+    void motorSystem(void);
          
 public:
     BalanceBot (I2C* i2c);
 
-    void step(const uint16_t count = 1);
+    void step();
+    void steps(const uint16_t count = 1);
 
     void setStepMode(const uint8_t mode);
     void incStepMode();

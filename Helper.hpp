@@ -19,6 +19,8 @@
  */
 namespace Helper {
 
+
+
 void knightRider(DigitalOut* led1, DigitalOut* led2, DigitalOut* led3, DigitalOut* led4);
 
 
@@ -37,7 +39,7 @@ void printBinary(const T* data, const uint16_t numBytes = 1) {
     //!< Print each data point starting with 0b
     for(int i = 0; i < numBytes; i++) {
         printf("\t0b");
-        //!< Print each element bit by bit... literally
+        //!< Print each element bit by bit
         for (int j = 0; j < elementSize; j++) {
             if( (j != 0) && (j % 4 == 0)) {
                 printf(" ");
