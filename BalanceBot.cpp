@@ -9,15 +9,15 @@
 //!< Constructor
 BalanceBot::BalanceBot(I2C* i2c) : 
     mpu(i2c),
-    pid(KP, KI, KD, DT, bbOut),
+    pid(KP, KI, KD, DT, INTEGRAL_WINDUP_LIMIT, bbOut),
     bothWheels(MOTOR_PORT, STEP_MASK),
     leftWheel(L_STEP, L_DIR, L_MS1, L_MS2, L_MS3),
     rightWheel(R_STEP, R_DIR, R_MS1, R_MS2, R_MS3),
-    stepMode(FULL_STEP),
+    stepMode(QUARTER_STEP),
     // Inputs
-    topPB(TOP_PB),
-    botPB(BOT_PB),
-    limSW(LIMIT_SWITCH),
+    leftPushButton(LEFT_PB),
+    rightPushButton(RIGHT_PB),
+    limitSwitch(LIMIT_SWITCH),
     pbs(PB_PORT, PB_MASK),
     // Outputs
     rgb_r(RGB_R),
@@ -40,17 +40,17 @@ BalanceBot::BalanceBot(I2C* i2c) :
     /*!
         Start robot/threads or run hardware tests
      */
-    runAllTests();
+    //runAllTests();
     
     buttonThread.start(callback(this, &BalanceBot::handlePBs));
     buttonThread.set_priority(osPriorityHigh1);
-    /*
+    
     controllerThread.start(callback(this, &BalanceBot::controlSystem));
     controllerThread.set_priority(osPriorityRealtime1);
     
     motorThread.start(callback(this, &BalanceBot::motorSystem));
     motorThread.set_priority(osPriorityAboveNormal1);
-    */
+    
     fprintf(bbOut, "\n\r~~~ BalanceBot online ~~~\n\n\r");
 }
 
@@ -172,36 +172,65 @@ double BalanceBot::getTiltDegrees() {
     \fn handlePBs()
     Handle the 2 external push buttons
  */
+
 void BalanceBot::handlePBs() {
+    double *activeConstant = &kp;
+    double constantIncrement = KP_INCREMENT;
+    rgb_r = LED_ON;
+    rgb_b = LED_OFF;
+    rgb_g = LED_OFF;
     while(true) {
-        if(topPB == 0) {
-            while(topPB == 0){
-                //!< Wait for release of button
-            }
-            fprintf(bbOut, "Top PB pressed\n\r");
-            //double temperature = mpu.getTemp();
-            fprintf(bbOut, "Current Temperature %0.1f degrees celcius\n\r", mpu.getTemp());         
+        /*!
+            Limit Switch changes which constant is being modified
+        */
+        if(limitSwitch == 0 ) {
+            ThisThread::sleep_for(BUTTON_DEBOUNCE); 
+            printf("Changed active constant to ");
+            while(limitSwitch == 0 );
+            if(activeConstant == &kp) {
+                activeConstant = &ki;
+                constantIncrement = KI_INCREMENT;
+                rgb_r = LED_OFF;
+                rgb_b = LED_OFF;
+                rgb_g = LED_ON;
+                printf("ki = %0.5f\n\r", *activeConstant);
+            } else if(activeConstant == &ki) {
+                activeConstant = &kd;
+                constantIncrement = KD_INCREMENT;
+                rgb_r = LED_OFF;
+                rgb_b = LED_ON;
+                rgb_g = LED_OFF;
+                printf("kd = %0.5f\n\r", *activeConstant);
+            } else {
+                activeConstant = &kp;
+                constantIncrement = KP_INCREMENT;
+                rgb_r = LED_ON;
+                rgb_b = LED_OFF;
+                rgb_g = LED_OFF;
+                printf("kp = %0.5f\n\r", *activeConstant);
+            } 
         }
-        if(limSW == 0 ) {
-            while(limSW == 0){
-                //!< Wait for release of button
-            }
-            /*
-                do stuff for bottom PB
-            */
-            fprintf(bbOut, "Limit switch pressed\n\r");
+        /*!
+            Left Push Button increments active constant
+        */
+        if(leftPushButton == 1) { // Test board wiring got fucked up when replacing a switch. Normally 0 == PRESSED
+            ThisThread::sleep_for(BUTTON_DEBOUNCE); 
+            while(leftPushButton == 1);
+            *activeConstant = *activeConstant + constantIncrement;
+            pid.setGain(kp, ki, kd);
+            printf("Increased active constant %0.5f\n\r", *activeConstant);
         }
-        if(botPB == 0 ) {
-            while(botPB == 0){
-                //!< Wait for release of button
-            }
-            /*
-                do stuff for bottom PB
-            */
-            fprintf(bbOut, "Bottom PB pressed\n\r");
-        }  
-    
-    ThisThread::sleep_for(100);
+        /*!
+            Right Push Button decrements active constant
+        */
+        if(rightPushButton == 0 ) {
+            ThisThread::sleep_for(BUTTON_DEBOUNCE);            
+            while(rightPushButton == 0);
+            *activeConstant = *activeConstant - constantIncrement;
+            pid.setGain(kp, ki, kd);
+            printf("Deacreased active constant to: %0.5f\n\r", *activeConstant);
+        }
+        ThisThread::sleep_for(BUTTON_CHECK_INTERVAL);
     }
 }
 
@@ -216,15 +245,16 @@ void BalanceBot::motorSystem() {
         double absError = abs(error);
 
         //!< Set motor resolution based on tilt
-        if(absError < 1.0) {
-            ThisThread::sleep_for(10); 
-        } else if((absError < 15.0) && (stepMode != SIXTEENTH_STEP)){
+        if(absError < 10.0) {
             setStepMode(SIXTEENTH_STEP);
-        } else if((absError < 25.0) && (stepMode != QUARTER_STEP)) {
+        // } else if((absError < 10.0) && (stepMode != EIGHTH_STEP)){
+        //     setStepMode(EIGHTH_STEP);
+        // } else if((absError < 25.0) && (stepMode != EIGHTH_STEP)) {
+        //     setStepMode(EIGHTH_STEP);
+        // } else if (stepMode != EIGHTH_STEP) {
+        //     setStepMode(EIGHTH_STEP);
+        } else {
             setStepMode(QUARTER_STEP);
-        } else if (stepMode != FULL_STEP) {
-            setStepMode(FULL_STEP);
-            
         }
         // Handle direction and step count
         if(error != previousError) {
@@ -257,14 +287,7 @@ void BalanceBot::motorSystem() {
         - Controller: PID_Controller
  */
 void BalanceBot::controlSystem() {
-    fprintf(bbOut, "Tilt \terror \tcontrolVariable\n\r" );
-
     while(true) {
-        // Read push buttons
-        //uint32_t inputReading = pbs;
-        // uint32_t outputValue = inputReading << 3;
-        //rgb = ~outputValue;
-
         // 1) Calculate tilt/error from MPU6050 (Process variable)
         double mpuReading = getTiltDegrees();
 
@@ -276,6 +299,6 @@ void BalanceBot::controlSystem() {
     }
     
     fprintf(bbOut, "Control system shutting down....\n\r");
-    ThisThread::sleep_for(1500); 
+    ThisThread::sleep_for(1500); // I would display a progress bar if I could... Maybe an LED bargraph?
     fprintf(bbOut, "Control system successfully shut down\n\r");
 }

@@ -55,8 +55,8 @@
 //!< Pushbuttons
 #define PB_MASK   0x00800007
 #define PB_PORT  Port2
-#define TOP_PB  p25
-#define BOT_PB  p26
+#define LEFT_PB  p25
+#define RIGHT_PB  p26
 #define LIMIT_SWITCH  p24
 //!< RGB LED
 #define RGB_MASK 0x00000038
@@ -64,6 +64,8 @@
 #define RGB_R p23
 #define RGB_G p22
 #define RGB_B p21
+#define LED_ON 1
+#define LED_OFF 0
 
 
 /*! 
@@ -71,15 +73,20 @@
  */
 #define ROBOT_ON        true
 #define ROBOT_OFF       false
-#define BALANCE_POINT   3 //!< Default balancing angle  in degrees
+#define BALANCE_POINT   1.285 //!< Default balancing angle in degrees
 
 #define RADIANS_TO_DEGREES  57.2957795130823208767981548
 
 #define KP 2.0
 #define KI 0.00
 #define KD 0.00
-#define DT 0.025 // Sensor sample rate in seconds
-#define DT_MS 25 // Sensor sample rate in milliseconds
+#define DT 0.040 // Sensor sample rate in seconds
+#define DT_MS 40 // Sensor sample rate in milliseconds
+#define INTEGRAL_WINDUP_LIMIT 25.0
+
+#define KP_INCREMENT 0.2
+#define KI_INCREMENT 0.2
+#define KD_INCREMENT 0.1
 
 /*!
     BalanceBot  - 2 Wheel self balancing robot
@@ -89,15 +96,14 @@ private:
     FILE* bbOut;// = stdout; //For logging data
     FILE* bbErr;// = stderr; //For logging errors
 
-    Mutex outputLock;
-    double error = 0.0;
-    uint16_t motorStepCount = 0;
-
     //!< IMU
     MPU6050 mpu;
     
     //!< PID Controller
-    PID_Controller pid;
+    PID_Controller pid;    
+    Mutex outputLock;
+    double error = 0.0;
+    uint16_t motorStepCount = 0;
     double setPoint = BALANCE_POINT; // Approximate balance point in degrees, should be set by a calibration function
     double kp = KP; 
     double ki = KI; 
@@ -112,10 +118,13 @@ private:
     uint8_t directionMode;
 
     //!< Onboard Pushbuttons
-    DigitalIn topPB;
-    DigitalIn botPB;
-    DigitalIn limSW;
+    #define BUTTON_CHECK_INTERVAL 100 // in ms
+    #define BUTTON_DEBOUNCE 10 // in ms
+    DigitalIn leftPushButton;
+    DigitalIn rightPushButton;
+    DigitalIn limitSwitch;
     PortIn pbs;
+
     //!< RGB LED
     DigitalOut rgb_r;
     DigitalOut rgb_g;

@@ -22,6 +22,7 @@ private:
     double previousError = 0.0;
     double previousOutput = 0.0; 
     double integralSum = 0.0;
+    double integralWindupLimit = 0.0;
 
     double dt = 0;
 
@@ -36,9 +37,10 @@ public:
      * \param derivativeGain The derivative gain
      * \param deltaT Constant period in ms
      */
-    PID_Controller (const double kp, const double ki, const double kd, const double dt, FILE *printPID = stdout);
+    PID_Controller (const double kp, const double ki, const double kd, const double dt, const double integralWindupLimit, FILE *printPID = stdout);
     
     double controlStep (double input, double setpoint);
+    void setGain(const double newKp, const double newKi, const double newKd);
 };
 
 

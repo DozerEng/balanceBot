@@ -38,8 +38,6 @@ Thread ledThread; //!< Handling onboard LED routine
 
 #define GO_TIME             true    //!< It's always go time!
 #define BLINKING_RATE_MS    200     //!< Blinking rate in microseconds
-#define BUTTON_DELAY        500
-#define BUTTON_DEBOUNCE     20  
 #define WAIT                1000
 
 
@@ -55,21 +53,12 @@ void threadHeartbeat(void);
 
     \return Exit success/failure
  */
-//!< LEDs
-// #define RGB_R P1_0 //need to check which LED to which pin
-// #define RGB_G P1_1
-// #define RGB_B P1_10
-// DigitalOut LED_R(RGB_R);
-// DigitalOut LED_G(RGB_G);
-// DigitalOut LED_B(RGB_G);
 
-
-// Main ********************************************************************/
 int main()
 {
-    
     //!< Subroutine Calls 
     ledThread.start(threadHeartbeat);
+    ledThread.set_priority(osPriorityLow1);
 
     printf("\n\rStarting MBED...\n\r");
     I2C i2c(p28, p27); //!< SDA, SCL
@@ -78,20 +67,12 @@ int main()
 
     BalanceBot bot(&i2c);
 
-
-
     //!< Main thread
     while (GO_TIME) {
-        //bot.handlePBs();
-
-        ThisThread::sleep_for(500);
-
+        ThisThread::sleep_for(100);
     }
     return EXIT_SUCCESS;
 } //EO main() **************************************************************/
-
-
-
 
 
 /*!
@@ -105,7 +86,6 @@ int main()
  */
 void threadHeartbeat(void)
 {
-
     while(true) {
         Helper::knightRider(&led1, &led2, &led3, &led4);
         ThisThread::sleep_for(BLINKING_RATE_MS);
