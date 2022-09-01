@@ -53,17 +53,17 @@
 #define R_MS2   p12
 #define R_MS3   p11
 //!< Pushbuttons
-#define PB_MASK   0x00800007
-#define PB_PORT  Port2
-#define LEFT_PB  p25
-#define RIGHT_PB  p26
-#define LIMIT_SWITCH  p24
+// #define PB_MASK   0x00800007
+// #define PB_PORT  Port2
+#define TOP_PB  p6
+#define BOTTOM_PB  p7
+#define LIMIT_SWITCH  p5
 //!< RGB LED
-#define RGB_MASK 0x00000038
-#define RGB_PORT  Port2
-#define RGB_R p23
-#define RGB_G p22
-#define RGB_B p21
+// #define RGB_MASK 0x00000038
+// #define RGB_PORT  Port2
+#define RGB_R p20
+#define RGB_G p19
+#define RGB_B p8
 #define LED_ON 1
 #define LED_OFF 0
 
@@ -120,16 +120,16 @@ private:
     //!< Onboard Pushbuttons
     #define BUTTON_CHECK_INTERVAL 100 // in ms
     #define BUTTON_DEBOUNCE 10 // in ms
-    DigitalIn leftPushButton;
-    DigitalIn rightPushButton;
+    DigitalIn topPushButton;
+    DigitalIn bottomPushButton;
     DigitalIn limitSwitch;
-    PortIn pbs;
+    // PortIn pbs;
 
     //!< RGB LED
     DigitalOut rgb_r;
     DigitalOut rgb_g;
     DigitalOut rgb_b;
-    PortOut rgb;
+    // PortOut rgb;
 
     /*! 
         Thread for operating control system

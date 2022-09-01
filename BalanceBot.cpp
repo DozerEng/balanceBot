@@ -15,15 +15,15 @@ BalanceBot::BalanceBot(I2C* i2c) :
     rightWheel(R_STEP, R_DIR, R_MS1, R_MS2, R_MS3),
     stepMode(QUARTER_STEP),
     // Inputs
-    leftPushButton(LEFT_PB),
-    rightPushButton(RIGHT_PB),
+    topPushButton(TOP_PB),
+    bottomPushButton(BOTTOM_PB),
     limitSwitch(LIMIT_SWITCH),
-    pbs(PB_PORT, PB_MASK),
+    //pbs(PB_PORT, PB_MASK),
     // Outputs
     rgb_r(RGB_R),
     rgb_g(RGB_G),
     rgb_b(RGB_B),
-    rgb(RGB_PORT, RGB_MASK),
+    //rgb(RGB_PORT, RGB_MASK),
     bbOut(stdout), // stdout, "./fileName.txt", "a"
     bbErr(stderr) // stderr, 
     {
@@ -213,9 +213,9 @@ void BalanceBot::handlePBs() {
         /*!
             Left Push Button increments active constant
         */
-        if(leftPushButton == 1) { // Test board wiring got fucked up when replacing a switch. Normally 0 == PRESSED
+        if(topPushButton == 0) { // Test board wiring got fucked up when replacing a switch. Normally 0 == PRESSED
             ThisThread::sleep_for(BUTTON_DEBOUNCE); 
-            while(leftPushButton == 1);
+            while(topPushButton == 1);
             *activeConstant = *activeConstant + constantIncrement;
             pid.setGain(kp, ki, kd);
             printf("Increased active constant %0.5f\n\r", *activeConstant);
@@ -223,9 +223,9 @@ void BalanceBot::handlePBs() {
         /*!
             Right Push Button decrements active constant
         */
-        if(rightPushButton == 0 ) {
+        if(bottomPushButton == 0 ) {
             ThisThread::sleep_for(BUTTON_DEBOUNCE);            
-            while(rightPushButton == 0);
+            while(bottomPushButton == 0);
             *activeConstant = *activeConstant - constantIncrement;
             pid.setGain(kp, ki, kd);
             printf("Deacreased active constant to: %0.5f\n\r", *activeConstant);
@@ -243,6 +243,31 @@ void BalanceBot::motorSystem() {
         //!< Check for change in error value from controller
         static double previousError;
         double absError = abs(error);
+
+
+
+
+    /** DO THIS 
+    
+        if(absError > Max_Increment) {
+            set mode
+            steps() to get to next tier
+        } 
+        if(absError > Next_Tier) {
+            set mode
+            step while greater than next tier
+        }
+        ...
+
+        if is neccessary so you don't 
+    
+    **/
+
+
+
+
+
+
 
         //!< Set motor resolution based on tilt
         if(absError < 10.0) {
