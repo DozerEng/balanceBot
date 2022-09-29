@@ -18,8 +18,8 @@
 
 */
 void BalanceBot::runAllTests() {
-    // testWheels();
-    testWheelsFast();
+    // Pick 1 motor test
+    testWheels();
 }
 /*!
     \fn testWheels()
@@ -39,79 +39,36 @@ void BalanceBot::runAllTests() {
         - Something else went wrong, figure it out and document here.
 
  */
-void BalanceBot::testWheels() {
+
+void BalanceBot::testWheels(uint8_t scaleFactor) {
     //!< Step 1 and 2
     setDirection(FORWARD);
     setStepMode(FULL_STEP);
-    for(int i = 0; i < 6; i++) {
-        printf("Step 1 part %i: Steps: %i\n\r", i, STEPS_PER_REVOLUTION*stepMode);
-        steps(STEPS_PER_REVOLUTION*stepMode);
-        incStepMode();
-        ThisThread::sleep_for(500);
-    }
-    //!< Step 3
-    setDirection(REVERSE);
-    for(int i = 0; i < 6; i++) {
-        printf("Step 3 part %i: Steps: %i\n\r", i, STEPS_PER_REVOLUTION*stepMode);
-        steps(STEPS_PER_REVOLUTION*stepMode);
-        decStepMode();
-        ThisThread::sleep_for(500);
-    }
-    //!< Step 4 part 1
-    setDirection(LEFT_TURN);
-    setStepMode(FULL_STEP);
-    for(int i = 0; i < 6; i++) {
-        printf("Step 4a part %i: Steps: %i\n\r", i, STEPS_PER_REVOLUTION*stepMode);
-        steps(STEPS_PER_REVOLUTION*stepMode);
-        incStepMode();
-        ThisThread::sleep_for(500);
-    }    
-    //!< Step 4 part 2
-    setDirection(RIGHT_TURN);
-    setStepMode(SIXTEENTH_STEP);
-    for(int i = 0; i < 5; i++) {
-        printf("Step 4b part %i: Steps: %i\n\r", i, STEPS_PER_REVOLUTION*stepMode);
-        steps(STEPS_PER_REVOLUTION*stepMode);
-        decStepMode();
-        ThisThread::sleep_for(500);
-    }
-}
-
-/*!
-    \fn testWheelsFast()
-
-    Implementation of testWheels() which has 200 steps per step mode while testWheels() has 200*stepMode steps per step mode.
-
- */
-void BalanceBot::testWheelsFast() {
-    //!< Step 1 and 2
-    setDirection(FORWARD);
-    setStepMode(FULL_STEP);
-    for(int i = 0; i < 6; i++) {
-        steps(STEPS_PER_REVOLUTION);
+    for(int i = 0; i <= 5; i++) { // Do each of the 5 step modes
+        steps(STEPS_PER_REVOLUTION*scaleFactor);
         incStepMode();
         ThisThread::sleep_for(100);
     }
     //!< Step 3
     setDirection(REVERSE);
-    for(int i = 0; i < 6; i++) {
-        steps(STEPS_PER_REVOLUTION);
+    for(int i = 0; i <= 5; i++) { // Do each of the 5 step modes
+        steps(STEPS_PER_REVOLUTION*scaleFactor);
         decStepMode();
         ThisThread::sleep_for(100);
     }
     //!< Step 4 part 1
     setDirection(LEFT_TURN);
     setStepMode(FULL_STEP);
-    for(int i = 0; i < 6; i++) {
-        steps(STEPS_PER_REVOLUTION);
+    for(int i = 0; i <= 5; i++) { // Do each of the 5 step modes
+        steps(STEPS_PER_REVOLUTION*scaleFactor);
         incStepMode();
         ThisThread::sleep_for(100);
     }    
     //!< Step 4 part 2
     setDirection(RIGHT_TURN);
-    setStepMode(SIXTEENTH_STEP);
-    for(int i = 0; i < 5; i++) {
-        steps(STEPS_PER_REVOLUTION);
+    setStepMode(SIXTEENTH_STEP*scaleFactor);
+    for(int i = 0; i <= 5; i++) { // Do each of the 5 step modes
+        steps(STEPS_PER_REVOLUTION*scaleFactor);
         decStepMode();
         ThisThread::sleep_for(100);
     }

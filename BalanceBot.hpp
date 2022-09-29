@@ -31,6 +31,11 @@
 #ifndef BALANCE_BOT_H 
 #define BALANCE_BOT_H 
 /*!
+    BalanceBot  - 2 Wheel self balancing robot
+ */
+class BalanceBot {
+
+/*!
     Hardware Defines
  */
  /*!
@@ -41,6 +46,7 @@
     Mask: 0x00800002 or 0b00000000100000000000000000000010
     
  */
+public:
 #define STEP_MASK   0x00800002
 #define MOTOR_PORT  Port0
 //#define STEP_MASK_OFF   0
@@ -62,6 +68,8 @@
 #define TOP_PB  p6
 #define BOTTOM_PB  p7
 #define LIMIT_SWITCH  p5
+#define PRESSED     0
+#define RELEASED    1
 //!< RGB LED
 // #define RGB_MASK 0x00000038
 // #define RGB_PORT  Port2
@@ -78,31 +86,41 @@
  */
 #define ROBOT_ON        true
 #define ROBOT_OFF       false
-#define BALANCE_POINT   2.8 //!< Default balancing angle in degrees
+#define BALANCE_POINT   0.00 //!< Default balancing angle in degrees
 
 #define RADIANS_TO_DEGREES  57.2957795130823208767981548
 
+//!< PID constants
 #define KP 1.0
 #define KI 0.00
 #define KD 0.00
-#define DT 0.040 // Sensor sample rate in seconds
-#define DT_MS 40 // Sensor sample rate in milliseconds
-#define INTEGRAL_WINDUP_LIMIT 25.0
+#define CONTROLLER_LIMIT_MAX 15 //!< Maximum error allowed per PID loop
+#define CONTROLLER_LIMIT_MIN -15
+ //!< Derivative LPF time constant in seconds: fc =  1/(2*pi*tau)
+#define TAU 0.020
+#define DT 0.020 // PID rate in seconds
+#define DT_MS 20 // integer: PID rate in milliseconds 
+#define IMU_SAMPLING_RATE 0.002 //Sensor sample rate in seconds
+#define IMU_SAMPLING_RATE_MS 2.0
+#define INTEGRAL_WINDUP_LIMIT 15
 
-#define KP_INCREMENT 0.2
-#define KI_INCREMENT 0.2
-#define KD_INCREMENT 0.1
+//!< PID tuning increments
+#define KP_INCREMENT 0.1
+#define KI_INCREMENT 0.5
+#define KD_INCREMENT 0.01
+//!< Set point tuning increment
+#define SET_POINT_INCREMENT 0.1
+//!< Complimentary filter constant
+#define ALPHA   0.001
 
-#define FULL_STEP_MINIMUM_ANGLE         20.0
-#define HALF_STEP_MINIMUM_ANGLE         10.0
-#define QUARTER_STEP_MINIMUM_ANGLE      5.0
-#define EIGHTH_STEP_MINIMUM_ANGLE       2.5
+//!< Motor system transistion points
+#define FULL_STEP_MINIMUM_ANGLE         10.0
+#define HALF_STEP_MINIMUM_ANGLE         5.0
+#define QUARTER_STEP_MINIMUM_ANGLE      2.5
+#define EIGHTH_STEP_MINIMUM_ANGLE       1.25
+#define SIXTEENTH_STEP_MINIMUM_ANGLE    0.625   // No motion from the motors
 
 
-/*!
-    BalanceBot  - 2 Wheel self balancing robot
- */
-class BalanceBot {
 private: 
     FILE* bbOut;// = stdout; //For logging data
     FILE* bbErr;// = stderr; //For logging errors
@@ -114,6 +132,7 @@ private:
     //!< PID Controller
     PID_Controller pid;    
     double setPoint = BALANCE_POINT; // Approximate balance point in degrees, should be set by a calibration function
+    double tiltAngle = 0.0;
     double kp = KP; 
     double ki = KI; 
     double kd = KD; 
@@ -128,7 +147,7 @@ private:
 
     //!< Onboard Pushbuttons
     #define BUTTON_CHECK_INTERVAL 100 // in ms
-    #define BUTTON_DEBOUNCE 10 // in ms
+    #define BUTTON_DEBOUNCE 5 // in ms
     DigitalIn topPushButton;
     DigitalIn bottomPushButton;
     DigitalIn limitSwitch;
@@ -141,12 +160,17 @@ private:
      */
     Ticker imuTicker;
     void imuISR(void);
+    void imuHandler(void);
+    Thread imuThread;
+    EventQueue imuQueue;
     
     Thread controlThread;
     EventQueue controlQueue;
     void controlSystem();
-
+    Thread motorThread;
+    EventQueue motorQueue;
     void motorSystem(double error);
+    void setMotorDirection(double error);
 
     Thread buttonThread;
     EventQueue buttonQueue;
@@ -165,8 +189,7 @@ public:
     void setDirection(void);
     void setDirection(const uint8_t dir);
 
-    double getTilt(void);
-    double getTiltDegrees(void);
+    void getTilt(void);
     
 
     /*!
@@ -174,8 +197,7 @@ public:
         -   These functions are all in BalanceBotTests.cpp and test general functionality of the robot and relevant methods.
      */
     void runAllTests(void);
-    void testWheels(void);
-    void testWheelsFast(void);
+    void testWheels(uint8_t scaleFactor = 1);
 
 };
 

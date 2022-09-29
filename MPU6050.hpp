@@ -105,6 +105,7 @@ FS_SEL      Full Scale Range
 #define GYRO_SCALE_1000     2
 #define GYRO_SCALE_2000     3
 
+
 /*!
     Accelerometer Config
 
@@ -130,6 +131,12 @@ AFS_SEL     Full Scale Range
 #define ACCEL_SCALE_4G      1
 #define ACCEL_SCALE_8G      2
 #define ACCEL_SCALE_16G     3
+
+#define ACCEL_FACTOR_2G     131.0
+#define ACCEL_FACTOR_4G     65.5
+#define ACCEL_FACTOR_8G     32.8
+#define ACCEL_FACTOR_16G    16.4
+
 
 #define MOT_THR             0x1F //!< Threshold for motion detect interupt (Accelerometer)
 #define FIFO_EN             0x23
@@ -293,8 +300,6 @@ public:
     void setGyroScale(uint8_t scale);
     uint8_t getGyroScale(void);
      
-    
-
 };
 
 #endif
