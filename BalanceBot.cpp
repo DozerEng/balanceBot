@@ -33,7 +33,7 @@ BalanceBot::BalanceBot(I2C* i2c) :
     
     setStepMode(stepMode);
     setDirection(FORWARD); 
-    mpu.setDLPF(DLPF_CFG_0); //!< Digital Low Pass Filter
+    mpu.setDLPF(DLPF_CFG_4); //!< Digital Low Pass Filter
 
     /*!
         Start robot/threads or run hardware tests
@@ -55,13 +55,13 @@ BalanceBot::BalanceBot(I2C* i2c) :
     */
     controlThread.start(callback(&controlQueue, &EventQueue::dispatch_forever));
     controlThread.set_priority(osPriorityAboveNormal);
-    controlQueue.call_every(DT_MS, callback(this, &BalanceBot::controlSystem));
+    // controlQueue.call_every(DT_MS, callback(this, &BalanceBot::controlSystem));
     
     /*
         Motor thread
     */
-    motorThread.start(callback(&motorQueue, &EventQueue::dispatch_forever));
-    motorThread.set_priority(osPriorityNormal);
+    // motorThread.start(callback(&motorQueue, &EventQueue::dispatch_forever));
+    // motorThread.set_priority(osPriorityNormal);
 
     /*
         Button thread
@@ -243,12 +243,13 @@ void BalanceBot::imuISR() {
 }
 
 void BalanceBot::imuHandler() {
-    getTilt();
-
-    if(logControlData) {
-        // printQueue.call(fprintf, bbOut, "%.2f\n\r", mpuReading);
-        fprintf(bbOut, "%.2f \n\r", tiltAngle);
-    }
+    static int controlQueueID = 0;
+    // Clear control queue
+    // fprintf(bbOut, "%i\n\r", controlQueueID);
+    if(controlQueueID) controlQueue.cancel(controlQueueID);
+    
+    // Call control queue with new value
+    controlQueueID = controlQueue.call(callback(this, &BalanceBot::controlSystem));
 }
 
 /*!
@@ -258,7 +259,7 @@ void BalanceBot::imuHandler() {
         Arguments for atan2() may need adjusting depending on orientation of MPU6050.
     \return azimuth angle of robot. Radians by default.
  */
-void BalanceBot::getTilt() {
+double BalanceBot::getTilt() {
     /* This is the old getTilt() function
     int16_t xAcceleration, yAcceleration, zAcceleration;
     mpu.getAccel(&xAcceleration, &yAcceleration, &zAcceleration);
@@ -280,7 +281,7 @@ void BalanceBot::getTilt() {
     double tiltAccelerometer = atan2( -zAcceleration, xAcceleration ) * RADIANS_TO_DEGREES;
     // Gyro scale set to 500 degrees per second: 65.5 LSB/°/s 130.07
     double tiltGyro = IMU_SAMPLING_RATE * ( - gyroY / ACCEL_FACTOR_2G);
-    tiltAngle = ALPHA * tiltAccelerometer + (1.0 - ALPHA) * ( tiltAngle + tiltGyro);
+    double theta = ALPHA * tiltAccelerometer + (1.0 - ALPHA) * ( currentTilt + tiltGyro);
     // fprintf(bbOut, "Accelerometer Angle: %0.3f \t\tGyro Change: %0.3f\t\tTilt: %0.3f\n\r", tiltAccelerometer, tiltGyro, tiltAngle);
 
 
@@ -303,7 +304,11 @@ void BalanceBot::getTilt() {
     fprintf(bbOut, "PhiHat: %0.3f\tthetaHat: %0.3f\n\r", phiHat_rad*RADIANS_TO_DEGREES, thetaHat_rad*RADIANS_TO_DEGREES);
     */
 
-    //return tiltAngle;
+    return theta;
+}
+
+void BalanceBot::updateTilt(){
+    currentTilt = getTilt();
 }
 
 /*!
@@ -314,22 +319,18 @@ void BalanceBot::getTilt() {
  */
 void BalanceBot::controlSystem() {
     // Sample currentTitle  
-    double currentTilt = tiltAngle;
+    updateTilt();
     
     // Set motor direction
     double error = setPoint - currentTilt;
+    // fprintf(bbOut, "%0.2f\n\r", currentTilt);
     setMotorDirection(error);
     
     // Apply PID
     error = pid.controlStep(currentTilt, setPoint);
 
-    // Stop motors from whatever they're doing and them make em do stuff
-    static int motorQueueID = 0;
-    // Clear control queue
-    if(motorQueueID) motorQueue.cancel(motorQueueID);
-    
-    // Call control queue with new value
-    motorQueueID = motorQueue.call(callback(this, &BalanceBot::motorSystem), error);
+    // Send command to motors
+    motorSystem(error);
 }
 
 
@@ -338,30 +339,25 @@ void BalanceBot::controlSystem() {
     Handlerfor movement of the robots wheels
  */
 void BalanceBot::motorSystem(double error) {
-    // fprintf(bbOut, "%0.2f\n\r", error);
     double absError = abs(error);
     uint16_t motorStepCount = 0;
     if(absError > FULL_STEP_MINIMUM_ANGLE) {
         setStepMode(FULL_STEP);
-        motorStepCount = uint16_t(absError/DEGREES_PER_STEP)*stepMode;
-        steps(motorStepCount);
+        motorStepCount = uint16_t(absError/DEGREES_PER_STEP);
     } else if(absError > HALF_STEP_MINIMUM_ANGLE) {
         setStepMode(HALF_STEP);
-        motorStepCount = uint16_t(absError/DEGREES_PER_STEP)*stepMode;
-        steps(motorStepCount);
+        motorStepCount = uint16_t(absError*HALF_STEP/DEGREES_PER_STEP);
     } else if(absError > QUARTER_STEP_MINIMUM_ANGLE) {
         setStepMode(QUARTER_STEP);
-        motorStepCount = uint16_t(absError/DEGREES_PER_STEP)*stepMode;
-        steps(motorStepCount);
-    }else if(absError > EIGHTH_STEP_MINIMUM_ANGLE) {
+        motorStepCount = uint16_t(absError*QUARTER_STEP/DEGREES_PER_STEP);
+    } else if(absError > EIGHTH_STEP_MINIMUM_ANGLE) {
         setStepMode(EIGHTH_STEP);
-        motorStepCount = uint16_t(absError/DEGREES_PER_STEP)*stepMode;
-        steps(motorStepCount);
-    }else if(absError > SIXTEENTH_STEP_MINIMUM_ANGLE) {
+        motorStepCount = uint16_t(absError*EIGHTH_STEP/DEGREES_PER_STEP);
+    } else if(absError > SIXTEENTH_STEP_MINIMUM_ANGLE) {
         setStepMode(SIXTEENTH_STEP);
-        motorStepCount = uint16_t(absError/DEGREES_PER_STEP)*stepMode;
-        steps(motorStepCount);
+        motorStepCount = uint16_t(absError*SIXTEENTH_STEP/DEGREES_PER_STEP);
     }
+        steps(motorStepCount);
     
 }
 

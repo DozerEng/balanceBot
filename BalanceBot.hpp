@@ -94,31 +94,31 @@ public:
 #define KP 1.0
 #define KI 0.00
 #define KD 0.00
-#define CONTROLLER_LIMIT_MAX 15 //!< Maximum error allowed per PID loop
-#define CONTROLLER_LIMIT_MIN -15
+#define CONTROLLER_LIMIT_MAX 125 //!< Maximum error allowed per PID loop
+#define CONTROLLER_LIMIT_MIN -125
  //!< Derivative LPF time constant in seconds: fc =  1/(2*pi*tau)
-#define TAU 0.020
-#define DT 0.020 // PID rate in seconds
-#define DT_MS 20 // integer: PID rate in milliseconds 
-#define IMU_SAMPLING_RATE 0.002 //Sensor sample rate in seconds
-#define IMU_SAMPLING_RATE_MS 2.0
+#define TAU 0.001
+#define DT 0.001 // PID rate in seconds
+#define DT_MS 1 // integer: PID rate in milliseconds 
+#define IMU_SAMPLING_RATE 0.001 //Sensor sample rate in seconds
+#define IMU_SAMPLING_RATE_MS 1.0
 #define INTEGRAL_WINDUP_LIMIT 15
 
 //!< PID tuning increments
 #define KP_INCREMENT 0.1
-#define KI_INCREMENT 0.5
+#define KI_INCREMENT 0.25
 #define KD_INCREMENT 0.01
 //!< Set point tuning increment
 #define SET_POINT_INCREMENT 0.1
 //!< Complimentary filter constant
-#define ALPHA   0.001
+#define ALPHA   0.005
 
 //!< Motor system transistion points
-#define FULL_STEP_MINIMUM_ANGLE         10.0
-#define HALF_STEP_MINIMUM_ANGLE         5.0
-#define QUARTER_STEP_MINIMUM_ANGLE      2.5
-#define EIGHTH_STEP_MINIMUM_ANGLE       1.25
-#define SIXTEENTH_STEP_MINIMUM_ANGLE    0.625   // No motion from the motors
+#define FULL_STEP_MINIMUM_ANGLE         4.0
+#define HALF_STEP_MINIMUM_ANGLE         2.0
+#define QUARTER_STEP_MINIMUM_ANGLE      1.0
+#define EIGHTH_STEP_MINIMUM_ANGLE       0.5
+#define SIXTEENTH_STEP_MINIMUM_ANGLE    0.5  // Limit for motion
 
 
 private: 
@@ -132,7 +132,7 @@ private:
     //!< PID Controller
     PID_Controller pid;    
     double setPoint = BALANCE_POINT; // Approximate balance point in degrees, should be set by a calibration function
-    double tiltAngle = 0.0;
+    double currentTilt = 0.0;
     double kp = KP; 
     double ki = KI; 
     double kd = KD; 
@@ -189,8 +189,8 @@ public:
     void setDirection(void);
     void setDirection(const uint8_t dir);
 
-    void getTilt(void);
-    
+    double getTilt(void);
+    void updateTilt(void);
 
     /*!
         Test functions
